@@ -1,0 +1,4 @@
+career_guidance_backend.egg-info/
+__pycache__/
+/.venv/
+.env
