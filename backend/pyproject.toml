@@ -1,0 +1,32 @@
+[project]
+name = "career-guidance-backend"
+version = "0.1.0"
+description = "FastAPI backend scaffold for career guidance platform"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.116.0",
+  "uvicorn[standard]>=0.35.0",
+  "sqlalchemy>=2.0.35",
+  "aiosqlite>=0.20.0",
+  "pydantic>=2.11.0",
+  "pydantic-settings>=2.6.0",
+  "email-validator>=2.2.0",
+  "httpx>=0.28.0",
+  "pyjwt>=2.10.0",
+  "passlib[bcrypt]>=1.7.4",
+  "python-multipart>=0.0.20"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.25.0",
+  "ruff>=0.11.0"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
