@@ -14,4 +14,4 @@ class UserRead(TimestampedRead):
 
 
 class UserUpdateRequest(BaseModel):
-    login: str = Field(max_length=255)
+    login: str = Field(min_length=3, max_length=255)

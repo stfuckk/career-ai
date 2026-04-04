@@ -1,8 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.enums import EducationLevelEnum, SexEnum
-from app.schemas.common import TimestampedRead
-
 
 class CareerTestScoresRequest(BaseModel):
     people_score: int = Field(ge=0, le=12)
@@ -27,21 +24,7 @@ class CareerTestScoresRequest(BaseModel):
         return self
 
 
-class CareerTestSubmitRequest(BaseModel):
-    age: int = Field(ge=16, le=22)
-    sex: SexEnum
-    education_level: EducationLevelEnum
-    work_experience: int | None = Field(default=None, ge=0)
-    hobbies_text: str | None = Field(default=None, max_length=2000)
-    scores: CareerTestScoresRequest
-
-
 class CareerTestSubmitAnonymousRequest(BaseModel):
-    age: int = Field(ge=16, le=22)
-    sex: SexEnum
-    education_level: EducationLevelEnum
-    work_experience_months: int | None = Field(default=None, ge=0)
-    hobbies_text: str | None = Field(default=None, max_length=2000)
     scores: CareerTestScoresRequest
 
 
@@ -79,11 +62,35 @@ class CareerTestPreviewRead(BaseModel):
     registration_required: bool = True
 
 
-class CareerTestResultRead(TimestampedRead):
+class AboutUserRead(BaseModel):
+    age: str
+    experience: str
+    strengths: list[str]
+    education: str
+
+
+class CareerFitRead(BaseModel):
+    title: str
+    summary: str
+    professions: list[str]
+
+
+class DevelopmentRecommendationsRead(BaseModel):
+    title: str
+    summary: str
+    steps: list[str]
+
+
+class CareerTestResultRead(BaseModel):
+    created_at: str
+    updated_at: str
     attempt_token: str
     methodology_slug: str
-    summary: str
+    preview_summary: str
+    best_specialty: str
     scores: list[CategoryScoreRead]
     dominant_categories: list[str]
-    professions: list[RecommendedProfessionRead]
+    about_user: AboutUserRead
+    career_fit: CareerFitRead
+    development_recommendations: DevelopmentRecommendationsRead
     vacancies: list[VacancyRead] = []

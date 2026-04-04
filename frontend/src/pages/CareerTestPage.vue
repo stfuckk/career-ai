@@ -23,6 +23,9 @@
             <p v-if="!isSummaryVisible" class="mt-3 max-w-2xl text-sm leading-6 text-(--text-accent-soft) sm:text-base">
               Время прохождения 2-5 минут
             </p>
+            <p v-else class="mt-3 max-w-4xl text-sm leading-6 text-(--text-accent-soft) sm:text-base">
+              {{ previewSummaryText }}
+            </p>
           </div>
 
           <div
@@ -154,24 +157,46 @@
               </p>
             </div>
 
-            <div class="mt-4 grid gap-4 sm:grid-cols-2">
-              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-5">
-                <h3 class="text-lg font-bold text-(--text-hero) sm:text-xl">О вас</h3>
-                <p class="mt-3 text-sm leading-6 text-(--text-main)/80 sm:text-base">
-                  {{ summary.about }}
-                </p>
-              </article>
+            <div class="mt-4 grid gap-4">
+              <div
+                v-if="submitError"
+                class="rounded-3xl border border-rose-400/35 bg-rose-500/8 px-4 py-3 text-sm text-rose-700 dark:text-rose-200"
+              >
+                {{ submitError }}
+              </div>
 
-              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-5">
+              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-6">
                 <h3 class="text-lg font-bold text-(--text-hero) sm:text-xl">
-                  Проф. склонности, подходящие направления
+                  Проф. склонности и баллы по категориям
                 </h3>
-                <p class="mt-3 text-sm leading-6 text-(--text-main)/80 sm:text-base">
-                  {{ summary.directions }}
-                </p>
+                <div class="mt-5 space-y-4">
+                  <div
+                    v-for="score in previewScores"
+                    :key="score.key"
+                    class="rounded-3xl border p-4 transition"
+                    :class="dominantCategorySet.has(score.key) ? 'border-(--button-secondary)/45 bg-(--button-secondary)/7' : 'border-(--border-soft) bg-(--surface-soft-2)'"
+                  >
+                    <div class="flex items-center justify-between gap-4">
+                      <div class="min-w-0">
+                        <p class="font-semibold text-(--text-hero)">{{ score.title }}</p>
+                        <p class="mt-1 text-sm leading-6 text-(--text-main)/72">{{ score.label }}</p>
+                      </div>
+                      <div class="shrink-0 text-sm font-bold text-(--text-hero)">
+                        {{ score.score }}/12
+                      </div>
+                    </div>
+                    <div class="mt-3 h-2.5 rounded-full bg-(--surface-soft)">
+                      <div
+                        class="h-full rounded-full transition-[width]"
+                        :class="dominantCategorySet.has(score.key) ? 'bg-(--button-secondary)' : 'bg-(--text-muted)/45'"
+                        :style="{ width: `${(score.score / 12) * 100}%` }"
+                      />
+                    </div>
+                  </div>
+                </div>
               </article>
 
-              <div class="relative overflow-hidden rounded-3xl sm:col-span-2">
+              <div v-if="showRegistrationCta" class="relative overflow-hidden rounded-3xl">
                 <img
                   :src="careerLockedPreview"
                   alt="Превью закрытого персонального плана и списка вакансий"
@@ -181,13 +206,13 @@
                 <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
                   <div class="w-full max-w-xl rounded-[1.1rem] bg-(--surface)/94 px-3 py-3 text-center shadow-(--shadow-card) sm:rounded-3xl sm:px-6 sm:py-5">
                     <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-(--text-accent-soft) sm:text-sm sm:tracking-[0.22em]">
-                      Откройте полный доступ бесплатно
+                      Откройте полный доступ
                     </p>
                     <h3 class="mt-1.5 text-[13px] font-black uppercase leading-[0.9] tracking-[-0.03em] text-(--text-hero) sm:mt-3 sm:text-2xl">
-                      Зарегистрируйтесь, чтобы увидеть детали
+                      Зарегистрируйся, чтобы увидеть полный результат
                     </h3>
                     <p class="mt-2 hidden text-[11px] leading-4 text-(--text-main)/75 sm:block sm:text-base sm:leading-6">
-                      После регистрации откроем персональный план развития, полный список вакансий и детальный разбор ваших сильных сторон.
+                      Откроем персональный план развития, список вакансий и детальный разбор ваших сильных сторон.
                     </p>
                     <RouterLink
                       to="/auth"
@@ -208,7 +233,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import careerLockedPreviewDark from '@/assets/career-locked-preview-dark.png'
@@ -220,10 +245,17 @@ import {
   CAREER_TEST_SUMMARY,
 } from '@/constants/careerTest'
 import { useTheme } from '@/composables/useTheme'
+import { submitAnonymousTest } from '@/lib/api'
+import {
+  STORAGE_KEYS,
+  mapScoreArrayToApiScores,
+  readStorageJson,
+  writeStorageJson,
+  writeStorageValue,
+} from '@/lib/storage'
 
 const questions = CAREER_TEST_QUESTIONS
 const summary = CAREER_TEST_SUMMARY
-const RESULTS_STORAGE_KEY = 'career-ai-test-results'
 const { isDark } = useTheme()
 
 const draftAnswers = reactive({})
@@ -232,7 +264,8 @@ const questionRefs = ref({})
 const timelineItemRefs = ref({})
 const timelineContainerRef = ref(null)
 const isLoadingResults = ref(false)
-let resultsTimeoutId = null
+const previewResult = ref(readStorageJson(STORAGE_KEYS.testPreview))
+const submitError = ref('')
 
 const completedCount = computed(() => Object.keys(confirmedAnswers).length)
 const visibleQuestionCount = computed(() => Math.min(completedCount.value + 1, questions.length))
@@ -242,6 +275,12 @@ const isSummaryVisible = computed(() => isCompleted.value && !isLoadingResults.v
 const careerLockedPreview = computed(() =>
   isDark.value ? careerLockedPreviewDark : careerLockedPreviewLight,
 )
+const previewScores = computed(() => previewResult.value?.scores ?? [])
+const dominantCategorySet = computed(
+  () => new Set(previewResult.value?.dominant_categories ?? []),
+)
+const previewSummaryText = computed(() => previewResult.value?.preview_summary ?? summary.about)
+const showRegistrationCta = computed(() => previewResult.value?.registration_required !== false)
 
 const scoredColumns = computed(() => {
   const totals = Object.fromEntries(CAREER_TEST_COLUMNS.map((column) => [column.id, 0]))
@@ -261,13 +300,23 @@ const scoredColumns = computed(() => {
   }))
 })
 
-function persistResults() {
-  if (typeof window === 'undefined') {
-    return
-  }
+function persistScores(scoreValues) {
+  writeStorageJson(STORAGE_KEYS.testScores, scoreValues)
+}
 
+function persistPreview(preview) {
+  previewResult.value = preview
+  writeStorageJson(STORAGE_KEYS.testPreview, preview)
+  writeStorageValue(STORAGE_KEYS.attemptToken, preview.attempt_token)
+}
+
+async function submitResults() {
   const values = scoredColumns.value.map((column) => column.score)
-  window.localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(values))
+  persistScores(values)
+  submitError.value = ''
+
+  const preview = await submitAnonymousTest(mapScoreArrayToApiScores(values))
+  persistPreview(preview)
 }
 
 function selectAnswer(questionId, optionKey) {
@@ -282,17 +331,14 @@ async function confirmAnswer(questionId) {
   confirmedAnswers[questionId] = draftAnswers[questionId]
 
   if (Object.keys(confirmedAnswers).length === questions.length) {
-    persistResults()
     isLoadingResults.value = true
-
-    if (resultsTimeoutId) {
-      clearTimeout(resultsTimeoutId)
-    }
-
-    resultsTimeoutId = setTimeout(() => {
+    try {
+      await submitResults()
+    } catch (error) {
+      submitError.value = error?.message ?? 'Не удалось получить результат теста.'
+    } finally {
       isLoadingResults.value = false
-      resultsTimeoutId = null
-    }, 1200)
+    }
 
     return
   }
@@ -383,11 +429,6 @@ function handleQuestionEnter(questionId, index) {
   confirmAnswer(questionId)
 }
 
-onBeforeUnmount(() => {
-  if (resultsTimeoutId) {
-    clearTimeout(resultsTimeoutId)
-  }
-})
 </script>
 
 <style scoped>
