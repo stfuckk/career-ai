@@ -6,6 +6,7 @@ from app.models.ai_recommendation_job import AIRecommendationJob
 from app.models.career_recommendation import CareerRecommendation
 from app.models.career_test_attempt import CareerTestAttempt
 from app.models.career_test_score import CareerTestScore
+from app.models.course_recommendation import CourseRecommendation
 from app.models.test_methodology import TestMethodology
 from app.models.vacancy_recommendation import VacancyRecommendation
 
@@ -81,6 +82,46 @@ class CareerTestRepository:
         await self.db.flush()
         return entities
 
+    async def replace_courses(
+        self,
+        recommendation: CareerRecommendation,
+        courses_by_step: dict[int, list[dict]],
+    ) -> list[CourseRecommendation]:
+        """Заменяет все курсы рекомендации на новые, привязанные к шагам career_path."""
+        result = await self.db.execute(
+            select(CourseRecommendation).where(CourseRecommendation.recommendation_id == recommendation.id)
+        )
+        for entity in result.scalars().all():
+            await self.db.delete(entity)
+        await self.db.flush()
+
+        entities = []
+        for step_index, courses in courses_by_step.items():
+            for item in courses:
+                entities.append(
+                    CourseRecommendation(
+                        recommendation_id=recommendation.id,
+                        step_index=step_index,
+                        skill=item['skill'],
+                        stepik_course_id=item['stepik_course_id'],
+                        title=item['title'],
+                        summary=item.get('summary'),
+                        url=item['url'],
+                        cover_url=item.get('cover_url'),
+                        price=item.get('price'),
+                        currency=item.get('currency'),
+                        is_free=item.get('is_free', True),
+                        time_to_complete_hours=item.get('time_to_complete_hours'),
+                        total_units=item.get('total_units'),
+                        learners_count=item.get('learners_count', 0),
+                        average_rating=item.get('average_rating'),
+                    )
+                )
+        if entities:
+            self.db.add_all(entities)
+            await self.db.flush()
+        return entities
+
     async def get_attempt_by_token(self, attempt_token: str) -> CareerTestAttempt | None:
         result = await self.db.execute(
             select(CareerTestAttempt)
@@ -88,6 +129,7 @@ class CareerTestRepository:
             .options(
                 selectinload(CareerTestAttempt.score),
                 selectinload(CareerTestAttempt.recommendation).selectinload(CareerRecommendation.vacancies),
+                selectinload(CareerTestAttempt.recommendation).selectinload(CareerRecommendation.courses),
                 selectinload(CareerTestAttempt.methodology),
                 selectinload(CareerTestAttempt.ai_job),
             )
@@ -102,6 +144,7 @@ class CareerTestRepository:
             .options(
                 selectinload(CareerTestAttempt.score),
                 selectinload(CareerTestAttempt.recommendation).selectinload(CareerRecommendation.vacancies),
+                selectinload(CareerTestAttempt.recommendation).selectinload(CareerRecommendation.courses),
                 selectinload(CareerTestAttempt.methodology),
                 selectinload(CareerTestAttempt.ai_job),
             )

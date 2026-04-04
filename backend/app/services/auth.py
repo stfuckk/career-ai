@@ -33,6 +33,7 @@ class AuthService:
             sex=payload.sex.value,
             education_level=payload.education_level.value,
             work_experience=payload.work_experience_months,
+            hobbies_text=payload.hobbies_text,
             is_first_time_completing_test=False,
         )
 

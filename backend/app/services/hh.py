@@ -1,8 +1,25 @@
+import re
 from typing import Any
 
 import httpx
 
 from app.core.config import get_settings
+
+
+def _clean_hh_text(text: str | None) -> str | None:
+    """Убирает HH-теги подсветки вида <highlighttext>слово</highlighttext>."""
+    if not text:
+        return text
+    return re.sub(r'</?highlighttext>', '', text)
+
+
+def _clean_snippet(snippet: dict | None) -> dict | None:
+    if not isinstance(snippet, dict):
+        return snippet
+    return {
+        'requirement': _clean_hh_text(snippet.get('requirement')),
+        'responsibility': _clean_hh_text(snippet.get('responsibility')),
+    }
 
 
 class HeadHunterClient:
@@ -50,6 +67,6 @@ class HeadHunterClient:
                 'salary_to': ((item.get('salary') or {}).get('to')),
                 'currency': ((item.get('salary') or {}).get('currency')),
                 'alternate_url': item.get('alternate_url') or '',
-                'snippet': item.get('snippet'),
+                'snippet': _clean_snippet(item.get('snippet')),
             }
         return [item for item in deduplicated.values() if item['alternate_url']][: self.settings.hh_per_page]

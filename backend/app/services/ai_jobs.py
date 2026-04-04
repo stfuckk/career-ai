@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -5,10 +7,13 @@ from app.db.session import AsyncSessionLocal
 from app.models.ai_recommendation_job import AIJobStatusEnum, AIRecommendationJob
 from app.models.career_test_attempt import CareerTestAttempt
 from app.models.career_recommendation import CareerRecommendation
+from app.models.course_recommendation import CourseRecommendation  # noqa: F401 — triggers mapper registration
 from app.models.test_methodology import TestMethodology
 from app.repositories.career_test import CareerTestRepository
 from app.services.bothub_ai import BothubAIClient
 from app.services.hh import HeadHunterClient
+
+logger = logging.getLogger(__name__)
 
 
 def _build_attempt_options():
@@ -19,6 +24,9 @@ def _build_attempt_options():
         selectinload(AIRecommendationJob.attempt)
         .selectinload(CareerTestAttempt.recommendation)
         .selectinload(CareerRecommendation.vacancies),
+        selectinload(AIRecommendationJob.attempt)
+        .selectinload(CareerTestAttempt.recommendation)
+        .selectinload(CareerRecommendation.courses),
     ]
 
 
@@ -40,6 +48,7 @@ async def process_ai_recommendation_job(job_id: str) -> None:
 
         job = await _fetch_job(db, job_id)
         if job is None:
+            logger.warning('Job %s not found, skipping', job_id)
             return
 
         try:
@@ -52,6 +61,7 @@ async def process_ai_recommendation_job(job_id: str) -> None:
 
             job = await _fetch_job(db, job_id)
             if job is None:
+                logger.warning('Job %s disappeared after commit, skipping', job_id)
                 return
 
             attempt = job.attempt
@@ -72,6 +82,8 @@ async def process_ai_recommendation_job(job_id: str) -> None:
                     'AI processing requires registration data.'
                 )
 
+            logger.info('Job %s: calling AI for attempt %s', job_id, attempt.id)
+
             ai_result = await ai.analyze_test_result(
                 profile_snapshot={
                     'age': attempt.age_at_test,
@@ -85,6 +97,8 @@ async def process_ai_recommendation_job(job_id: str) -> None:
                 methodology_text=methodology.parsed_text,
                 methodology_json=methodology.parsed_json,
             )
+
+            logger.info('Job %s: AI returned result, saving recommendation', job_id)
 
             attempt.preview_summary = ai_result['preview_summary']
             attempt.latest_error = None
@@ -102,12 +116,31 @@ async def process_ai_recommendation_job(job_id: str) -> None:
             vacancies = await hh.search_vacancies(queries=recommendation.hh_search_queries)
             if vacancies:
                 await repo.replace_vacancies(recommendation, vacancies)
+                logger.info('Job %s: saved %d vacancies', job_id, len(vacancies))
+
+            # Курсы для каждого шага карьерного пути (Stepik API)
+            career_path = ai_result.get('career_path')
+            if career_path and isinstance(career_path, dict) and career_path.get('steps'):
+                from app.services.courses import StepikClient
+
+                stepik = StepikClient()
+                courses_by_step = await stepik.search_courses_for_career_path(
+                    career_path_steps=career_path['steps'],
+                )
+                total = sum(len(v) for v in courses_by_step.values())
+                if total > 0:
+                    await repo.replace_courses(recommendation, courses_by_step)
+                    logger.info('Job %s: saved %d courses for %d steps', job_id, total, len(courses_by_step))
+                else:
+                    logger.warning('Job %s: Stepik returned 0 courses, existing courses were not replaced', job_id)
 
             job.status = AIJobStatusEnum.ready
             job.error_message = None
             await db.commit()
+            logger.info('Job %s: completed successfully', job_id)
 
         except Exception as exc:  # noqa: BLE001
+            logger.error('Job %s failed: %s', job_id, exc, exc_info=True)
             job.status = AIJobStatusEnum.failed
             job.error_message = str(exc)
             try:
