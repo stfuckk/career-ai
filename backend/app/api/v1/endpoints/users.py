@@ -39,6 +39,4 @@ async def read_latest_test_result(
 ) -> CareerTestResultRead:
     service = CareerTestService(db)
     attempt = await service.get_latest_result_for_user(current_user.id)
-    if attempt is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No test result found')
     return CareerTestResultRead.model_validate(service.serialize_result(attempt))
