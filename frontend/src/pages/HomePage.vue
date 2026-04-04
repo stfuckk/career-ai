@@ -57,8 +57,8 @@
             </div>
 
             <template v-else>
-              <div class="mt-12 grid gap-5 lg:grid-cols-[0.72fr_1.8fr] lg:gap-8">
-                <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
+              <div class="mt-12 grid items-start gap-5 lg:grid-cols-[0.72fr_1.8fr] lg:gap-8">
+                <article class="self-start rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
                   <h2 class="text-lg font-black uppercase tracking-[0.28em] text-(--text-hero) sm:text-2xl">
                     О вас
                   </h2>
