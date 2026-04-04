@@ -96,6 +96,10 @@ export function readLatestTestResult(token) {
   return apiRequest('/users/me/latest-test-result', { token })
 }
 
+export function readCurrentUser(token) {
+  return apiRequest('/users/me', { token })
+}
+
 export function readAiJobStatus(jobId) {
   return apiRequest(`/ai-jobs/${jobId}/status`)
 }

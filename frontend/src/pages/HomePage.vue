@@ -155,6 +155,83 @@
                 </div>
               </article>
 
+              <article
+                v-if="careerPath"
+                class="career-path-card mt-8 rounded-[2rem] bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8 lg:p-10"
+              >
+                <div class="text-center">
+                  <p class="text-sm font-black uppercase tracking-[0.42em] text-(--text-hero) sm:text-base">
+                    Индивидуальный путь развития
+                  </p>
+                </div>
+
+                <div class="mt-6 lg:mt-7">
+                  <div class="career-path-grid">
+                    <div class="career-path-side-note career-path-side-note--current">
+                      <span class="career-path-side-note__label">Сейчас вы здесь</span>
+                    </div>
+
+                    <div class="career-path-side-note career-path-side-note--future">
+                      <span class="career-path-side-note__label">Где можете оказаться</span>
+                    </div>
+
+                    <div class="career-path-line" aria-hidden="true" />
+                    <svg class="career-path-arrow-overlay career-path-arrow-overlay--current" viewBox="0 0 300 120" aria-hidden="true">
+                      <path d="M286 22 C252 54, 214 68, 170 70 C122 72, 80 56, 18 56" />
+                      <path d="M30 46 L18 56 L30 66" />
+                    </svg>
+
+                    <svg class="career-path-arrow-overlay career-path-arrow-overlay--future" viewBox="0 0 300 120" aria-hidden="true">
+                      <path d="M14 98 C48 66, 86 52, 130 50 C178 48, 220 64, 282 64" />
+                      <path d="M270 54 L282 64 L270 74" />
+                    </svg>
+
+                    <div class="career-path-node career-path-node--current">
+                      <div class="career-path-node__marker" aria-hidden="true" />
+                      <div class="career-path-node__body">
+                        <p class="career-path-node__title">
+                          {{ careerPath.currentPosition }}
+                        </p>
+                      </div>
+                    </div>
+
+                    <template v-for="(step, index) in careerPath.steps" :key="`${step.title}-${index}`">
+                      <div class="career-path-step">
+                        <div class="career-path-step__aside career-path-step__aside--skills">
+                          <p class="career-path-step__label">Курсы на повышение навыков</p>
+                          <div class="career-path-step__chips">
+                            <span
+                              v-for="skill in step.skillsToLearn"
+                              :key="skill"
+                              class="career-path-chip"
+                            >
+                              {{ skill }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="career-path-node">
+                          <div class="career-path-node__marker" aria-hidden="true" />
+                          <div class="career-path-node__body">
+                            <p class="career-path-node__title">{{ step.title }}</p>
+                          </div>
+                        </div>
+
+                        <div class="career-path-step__aside career-path-step__aside--vacancies">
+                          <p class="career-path-step__label">Вакансии</p>
+                          <p class="career-path-step__meta">
+                            Опыт: {{ step.experienceRequired }}
+                          </p>
+                          <p class="career-path-step__query">
+                            Запрос: {{ step.hhSearchQuery }}
+                          </p>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </article>
+
               <div class="mt-10 rounded-4xl px-6 py-8 text-center sm:px-10 sm:py-10">
                 <p class="text-lg uppercase leading-snug tracking-[0.03em] text-(--text-hero) sm:text-3xl">
                   Хотите посмотреть
@@ -167,6 +244,16 @@
                   </RouterLink>,
                   которые подойдут вам прямо сейчас?
                 </p>
+              </div>
+
+              <div class="mt-4 pb-4 sm:pb-6">
+                <button
+                  type="button"
+                  class="flex min-h-16 w-full items-center justify-center rounded-full bg-(--button-secondary) px-8 text-center text-base font-bold uppercase tracking-[0.08em] text-(--button-text) shadow-[0_16px_32px_rgba(90,102,255,0.28)] transition hover:-translate-y-0.5 hover:bg-(--button-secondary-hover) sm:min-h-20 sm:text-2xl"
+                  @click="restartTest"
+                >
+                  Пройти тест заново
+                </button>
               </div>
             </template>
           </template>
@@ -204,7 +291,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
 import backgroundObjectDark from '@/assets/background-object-dark.png'
 import backgroundObjectLight from '@/assets/background-object-light.png'
@@ -216,11 +303,13 @@ import {
   STORAGE_KEYS,
   readStorageJson,
   readStorageValue,
+  removeStorageValue,
   writeStorageJson,
   writeStorageValue,
 } from '@/lib/storage'
 
 const { isDark } = useTheme()
+const router = useRouter()
 
 const heroSectionRef = ref(null)
 const isInteractive = ref(false)
@@ -300,6 +389,24 @@ const developmentRecommendations = computed(() => ({
       'Также мы добавим подборку подходящих вакансий.',
     ],
 }))
+
+const careerPath = computed(() => {
+  const rawCareerPath = fullResult.value?.career_path
+
+  if (!rawCareerPath?.current_position || !Array.isArray(rawCareerPath?.steps) || !rawCareerPath.steps.length) {
+    return null
+  }
+
+  return {
+    currentPosition: rawCareerPath.current_position,
+    steps: rawCareerPath.steps.map((step) => ({
+      title: step.title ?? 'Следующая роль',
+      skillsToLearn: Array.isArray(step.skills_to_learn) ? step.skills_to_learn.filter(Boolean) : [],
+      experienceRequired: step.experience_required ?? 'не указан',
+      hhSearchQuery: step.hh_search_query ?? 'не указан',
+    })),
+  }
+})
 
 const vacancies = computed(() => fullResult.value?.vacancies ?? [])
 const loadingMessage = computed(() => {
@@ -465,6 +572,28 @@ function handleStorageChange() {
   startAuthFlow()
 }
 
+async function restartTest() {
+  if (pollingTimeoutId) {
+    window.clearTimeout(pollingTimeoutId)
+    pollingTimeoutId = 0
+  }
+
+  jobError.value = ''
+  isResultsLoading.value = false
+  previewResult.value = null
+  fullResult.value = null
+  authJob.value = null
+
+  removeStorageValue(STORAGE_KEYS.testScores)
+  removeStorageValue(STORAGE_KEYS.testPreview)
+  removeStorageValue(STORAGE_KEYS.testResult)
+  removeStorageValue(STORAGE_KEYS.attemptToken)
+  removeStorageValue(STORAGE_KEYS.authJob)
+  writeStorageValue(STORAGE_KEYS.authLoading, 'false')
+
+  await router.push('/test')
+}
+
 function formatEducationLevel(value) {
   const map = {
     school: 'школа',
@@ -568,11 +697,337 @@ onBeforeUnmount(() => {
   opacity: 0.88;
 }
 
+.career-path-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.career-path-card::before {
+  content: '';
+  position: absolute;
+  inset: auto auto 12% -4%;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--button-secondary) 16%, transparent) 0%, transparent 72%);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.career-path-card::after {
+  content: '';
+  position: absolute;
+  inset: 6% -2% auto auto;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 9999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--button-primary) 10%, transparent) 0%, transparent 72%);
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.career-path-grid {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 3.6rem 0 5.75rem;
+}
+
+.career-path-line {
+  position: absolute;
+  top: -1.2rem;
+  bottom: -1.5rem;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, var(--button-secondary) 0%, color-mix(in srgb, var(--button-secondary) 38%, transparent) 100%);
+  opacity: 0.7;
+}
+
+.career-path-side-note {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.career-path-side-note--current {
+  top: 0.15rem;
+  right: 1.25rem;
+  transform: rotate(-3deg);
+}
+
+.career-path-side-note--future {
+  bottom: 1.1rem;
+  left: 0.5rem;
+  transform: rotate(-7deg);
+}
+
+.career-path-side-note__label {
+  color: #ff6b57;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+}
+
+.career-path-arrow-overlay {
+  position: absolute;
+  z-index: 4;
+  fill: none;
+  stroke: #ff8b6e;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.career-path-arrow-overlay--current {
+  top: 0.9rem;
+  left: calc(50% - 0.1rem);
+  width: 18rem;
+  height: 6rem;
+}
+
+.career-path-arrow-overlay--future {
+  bottom: 0.95rem;
+  right: calc(50% - 0.1rem);
+  width: 18rem;
+  height: 6rem;
+}
+
+.career-path-node,
+.career-path-step {
+  position: relative;
+  z-index: 1;
+}
+
+.career-path-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  text-align: center;
+}
+
+.career-path-node__marker {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 9999px;
+  background: var(--button-secondary);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--button-secondary) 14%, transparent);
+}
+
+.career-path-node--current .career-path-node__marker {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.career-path-node__body {
+  max-width: 18rem;
+  padding: 0.45rem 1.15rem;
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--surface) 58%, transparent);
+}
+
+.career-path-node__title {
+  color: var(--text-hero);
+  font-size: clamp(1.25rem, 1.75vw, 1.8rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.career-path-node__caption {
+  margin-top: 0.45rem;
+  color: color-mix(in srgb, var(--text-main) 70%, transparent);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.career-path-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 1.15rem;
+  align-items: center;
+  min-height: 8.5rem;
+}
+
+.career-path-step__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.career-path-step__aside--skills {
+  align-items: flex-end;
+  text-align: right;
+  padding-right: 1.1rem;
+}
+
+.career-path-step__aside--vacancies {
+  align-items: flex-start;
+  text-align: left;
+  padding-left: 1.1rem;
+}
+
+.career-path-step__label {
+  color: color-mix(in srgb, var(--text-main) 68%, transparent);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.career-path-step__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.career-path-chip {
+  border: 1px solid color-mix(in srgb, var(--border-soft) 76%, transparent);
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--surface-soft) 88%, transparent);
+  padding: 0.38rem 0.72rem;
+  color: var(--text-main);
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.career-path-step__meta,
+.career-path-step__query {
+  color: color-mix(in srgb, var(--text-main) 68%, transparent);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 1023px) {
+  .career-path-grid {
+    padding-top: 5rem;
+    padding-bottom: 5.5rem;
+  }
+
+  .career-path-side-note--current {
+    top: 0.4rem;
+    right: 50%;
+    transform: translateX(45%) rotate(-3deg);
+  }
+
+  .career-path-side-note--future {
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-62%) rotate(-6deg);
+  }
+
+  .career-path-arrow-overlay--current {
+    top: 1rem;
+    left: calc(50% - 0.15rem);
+    transform: none;
+  }
+
+  .career-path-arrow-overlay--future {
+    right: calc(50% - 0.15rem);
+    bottom: 0.6rem;
+    transform: none;
+  }
+
+  .career-path-step {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    justify-items: center;
+  }
+
+  .career-path-step__aside--skills,
+  .career-path-step__aside--vacancies {
+    align-items: center;
+    text-align: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .career-path-step__chips {
+    justify-content: center;
+  }
+}
+
 @media (max-width: 767px), (pointer: coarse) {
   .homepage-hero__background {
     width: min(135vw, 820px);
     opacity: 0.82;
     transform: translate3d(-50%, -44%, 0);
+  }
+
+  .career-path-card::before,
+  .career-path-card::after,
+  .career-path-line,
+  .career-path-arrow-overlay {
+    display: none;
+  }
+
+  .career-path-grid {
+    gap: 1rem;
+    padding: 0.5rem 0 0;
+  }
+
+  .career-path-side-note {
+    position: static;
+    transform: none;
+    text-align: center;
+  }
+
+  .career-path-side-note--future {
+    order: 99;
+  }
+
+  .career-path-side-note__label {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-align: center;
+  }
+
+  .career-path-node {
+    gap: 0.4rem;
+  }
+
+  .career-path-node__body {
+    max-width: 100%;
+    box-shadow: none;
+    padding: 0.2rem 0.65rem;
+  }
+
+  .career-path-node__title {
+    font-size: 1.15rem;
+  }
+
+  .career-path-step {
+    gap: 0.65rem;
+    padding: 0.8rem 0;
+    border-top: 1px solid color-mix(in srgb, var(--border-soft) 62%, transparent);
+    min-height: auto;
+  }
+
+  .career-path-step__label,
+  .career-path-step__meta,
+  .career-path-step__query {
+    font-size: 0.84rem;
+  }
+
+  .career-path-step__chips {
+    flex-wrap: nowrap;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+
+  .career-path-step__chips::-webkit-scrollbar {
+    display: none;
   }
 }
 </style>
