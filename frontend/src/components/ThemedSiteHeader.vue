@@ -1,5 +1,5 @@
 ﻿<template>
-  <header class="px-0 sm:px-20 lg:px-25">
+  <header class="relative z-30 shrink-0 px-0 sm:px-20 lg:px-25">
     <div class="rounded-b-4xl bg-(--surface) shadow-(--shadow-header) transition-colors duration-300">
       <div
         class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-10"
@@ -72,4 +72,3 @@ import { useTheme } from '@/composables/useTheme'
 
 const { isDark, toggleTheme } = useTheme()
 </script>
-
