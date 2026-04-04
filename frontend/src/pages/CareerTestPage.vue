@@ -181,7 +181,7 @@
                 <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
                   <div class="w-full max-w-xl rounded-[1.1rem] bg-(--surface)/94 px-3 py-3 text-center shadow-(--shadow-card) sm:rounded-3xl sm:px-6 sm:py-5">
                     <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-(--text-accent-soft) sm:text-sm sm:tracking-[0.22em]">
-                      Откройте полный доступ
+                      Откройте полный доступ бесплатно
                     </p>
                     <h3 class="mt-1.5 text-[13px] font-black uppercase leading-[0.9] tracking-[-0.03em] text-(--text-hero) sm:mt-3 sm:text-2xl">
                       Зарегистрируйтесь, чтобы увидеть детали
