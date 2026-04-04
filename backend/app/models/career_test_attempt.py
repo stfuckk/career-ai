@@ -20,9 +20,9 @@ class CareerTestAttempt(TimestampMixin, Base):
     methodology_id: Mapped[int] = mapped_column(ForeignKey('test_methodologies.id', ondelete='RESTRICT'))
     status: Mapped[str] = mapped_column(String(50), default='completed', index=True)
 
-    age_at_test: Mapped[int] = mapped_column(Integer)
-    sex_snapshot: Mapped[str] = mapped_column(String(50))
-    education_level_snapshot: Mapped[str] = mapped_column(String(50))
+    age_at_test: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sex_snapshot: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    education_level_snapshot: Mapped[str | None] = mapped_column(String(50), nullable=True)
     work_experience_snapshot: Mapped[int | None] = mapped_column(Integer, nullable=True)
     hobbies_text: Mapped[str | None] = mapped_column(Text, nullable=True)
 

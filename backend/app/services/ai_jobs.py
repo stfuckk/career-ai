@@ -3,7 +3,6 @@ from sqlalchemy.orm import selectinload
 
 from app.db.session import AsyncSessionLocal
 from app.models.ai_recommendation_job import AIJobStatusEnum, AIRecommendationJob
-from app.models.career_recommendation import CareerRecommendation
 from app.models.career_test_attempt import CareerTestAttempt
 from app.models.test_methodology import TestMethodology
 from app.repositories.career_test import CareerTestRepository
@@ -21,12 +20,9 @@ async def process_ai_recommendation_job(job_id: str) -> None:
             select(AIRecommendationJob)
             .where(AIRecommendationJob.id == job_id)
             .options(
-                selectinload(AIRecommendationJob.attempt)
-                .selectinload(CareerTestAttempt.methodology),
-                selectinload(AIRecommendationJob.attempt)
-                .selectinload(CareerTestAttempt.score),
-                selectinload(AIRecommendationJob.attempt)
-                .selectinload(CareerTestAttempt.recommendation),
+                selectinload(AIRecommendationJob.attempt).selectinload(CareerTestAttempt.methodology),
+                selectinload(AIRecommendationJob.attempt).selectinload(CareerTestAttempt.score),
+                selectinload(AIRecommendationJob.attempt).selectinload(CareerTestAttempt.recommendation),
             )
         )
         job = result.scalar_one_or_none()
@@ -52,6 +48,12 @@ async def process_ai_recommendation_job(job_id: str) -> None:
             if methodology is None:
                 job.status = AIJobStatusEnum.failed
                 job.error_message = 'Methodology not found'
+                await db.commit()
+                return
+
+            if attempt.age_at_test is None or attempt.sex_snapshot is None or attempt.education_level_snapshot is None:
+                job.status = AIJobStatusEnum.failed
+                job.error_message = 'User profile is incomplete for AI processing'
                 await db.commit()
                 return
 

@@ -91,8 +91,12 @@ class BothubAIClient:
         normalized = self._fallback_response(score_summary)
         normalized['summary'] = response.get('summary') or normalized['summary']
         normalized['preview_summary'] = response.get('preview_summary') or normalized['preview_summary']
-        normalized['recommended_professions'] = self._ensure_profession_list(response.get('recommended_professions')) or normalized['recommended_professions']
-        normalized['hh_search_queries'] = self._ensure_string_list(response.get('hh_search_queries')) or normalized['hh_search_queries']
+        professions = self._ensure_profession_list(response.get('recommended_professions'))
+        if professions:
+            normalized['recommended_professions'] = professions
+        queries = self._ensure_string_list(response.get('hh_search_queries'))
+        if queries:
+            normalized['hh_search_queries'] = queries
         return normalized
 
     def _ensure_string_list(self, value: Any) -> list[str]:
@@ -113,9 +117,8 @@ class BothubAIClient:
             name = str(item.get('name', '')).strip()
             if not name:
                 continue
-            fit_score = item.get('fit_score', 75)
             try:
-                fit_score = max(0, min(100, int(fit_score)))
+                fit_score = max(0, min(100, int(item.get('fit_score', 75))))
             except (TypeError, ValueError):
                 fit_score = 75
             normalized.append(
@@ -142,45 +145,45 @@ class BothubAIClient:
                 {'name': 'Junior QA analyst', 'rationale': 'Подходит при внимании к деталям и аналитическом мышлении.', 'fit_score': 79},
             ],
             'practical': [
-                {'name': 'Техник-стажер', 'rationale': 'Подходит тем, кто любит практическую деятельность и работу с техникой.', 'fit_score': 86},
-                {'name': 'Монтажник-стажер', 'rationale': 'Связано с практическими навыками и изготовлением изделий.', 'fit_score': 78},
-                {'name': 'Оператор производства', 'rationale': 'Подходит при ориентации на конкретный результат и практику.', 'fit_score': 76},
+                {'name': 'Техник-стажер', 'rationale': 'Подходит при интересе к практической работе и технике.', 'fit_score': 85},
+                {'name': 'Монтажник-стажер', 'rationale': 'Связано с практической деятельностью и работой руками.', 'fit_score': 80},
+                {'name': 'Помощник инженера', 'rationale': 'Дает прикладной старт в техническом направлении.', 'fit_score': 78},
             ],
             'aesthetic': [
-                {'name': 'Графический дизайнер-стажер', 'rationale': 'Подходит при интересе к визуальному и творческому самовыражению.', 'fit_score': 87},
-                {'name': 'Контент-мейкер', 'rationale': 'Связано с творческой подачей идей и эстетическим вкусом.', 'fit_score': 82},
-                {'name': 'SMM-ассистент', 'rationale': 'Подходит для творческих задач и работы с контентом.', 'fit_score': 79},
+                {'name': 'Графический дизайнер-стажер', 'rationale': 'Подходит при интересе к визуальному творчеству.', 'fit_score': 86},
+                {'name': 'Контент-менеджер', 'rationale': 'Сочетает работу с визуалом и текстом.', 'fit_score': 80},
+                {'name': 'SMM-ассистент', 'rationale': 'Подходит при интересе к креативным задачам.', 'fit_score': 78},
             ],
             'extreme': [
-                {'name': 'Инструктор по спорту (ассистент)', 'rationale': 'Подходит при высокой тяге к активности и спортивной среде.', 'fit_score': 81},
-                {'name': 'Помощник организатора мероприятий', 'rationale': 'Подходит тем, кто любит динамику и нестандартные условия.', 'fit_score': 77},
-                {'name': 'Туристический ассистент', 'rationale': 'Подходит при интересе к поездкам и активности.', 'fit_score': 74},
+                {'name': 'Инструктор-стажер', 'rationale': 'Подходит тем, кому важна активность и работа в динамичной среде.', 'fit_score': 82},
+                {'name': 'Спортивный организатор', 'rationale': 'Связано с активностью и мероприятиями.', 'fit_score': 77},
+                {'name': 'Помощник координатора выездных мероприятий', 'rationale': 'Подходит для людей, которым нравятся нестандартные условия.', 'fit_score': 76},
             ],
             'economic': [
-                {'name': 'Помощник бухгалтера', 'rationale': 'Подходит при интересе к расчетам, аккуратности и работе с документами.', 'fit_score': 86},
-                {'name': 'Офис-ассистент', 'rationale': 'Подходит при склонности к планированию и делопроизводству.', 'fit_score': 80},
-                {'name': 'Стажер-экономист', 'rationale': 'Связано с расчетами и системной работой с информацией.', 'fit_score': 78},
+                {'name': 'Помощник бухгалтера', 'rationale': 'Подходит при склонности к расчетам и аккуратности.', 'fit_score': 86},
+                {'name': 'Офис-ассистент', 'rationale': 'Хороший старт в работе с документами и организацией процессов.', 'fit_score': 80},
+                {'name': 'Младший аналитик данных', 'rationale': 'Подходит при интересе к структуре, данным и планированию.', 'fit_score': 79},
             ],
         }
-        query_map = {
-            'people': ['специалист поддержки стажер', 'hr ассистент', 'ассистент преподавателя'],
-            'research': ['стажер аналитик', 'junior qa analyst', 'лаборант исследователь'],
-            'practical': ['техник стажер', 'монтажник стажер', 'оператор производства без опыта'],
-            'aesthetic': ['графический дизайнер стажер', 'smm ассистент', 'контент менеджер стажер'],
-            'extreme': ['инструктор по спорту ассистент', 'помощник организатора мероприятий', 'туристический ассистент'],
-            'economic': ['помощник бухгалтера', 'офис ассистент', 'стажер экономист'],
-        }
 
-        professions: list[dict[str, Any]] = []
-        hh_search_queries: list[str] = []
+        recommended: list[dict[str, Any]] = []
         for key in top_keys:
-            professions.extend(profession_map.get(key, []))
-            hh_search_queries.extend(query_map.get(key, []))
+            recommended.extend(profession_map.get(key, []))
+        if not recommended:
+            recommended = [
+                {'name': 'Стажер', 'rationale': 'Базовая рекомендация для первого профориентационного шага.', 'fit_score': 70}
+            ]
 
-        score_titles = ', '.join(f"{item['title']}: {item['score']}" for item in top)
+        hh_queries = [profession['name'] for profession in recommended[:3]]
+        preview = 'Вам подходят направления: ' + ', '.join(item['title'].lower() for item in top)
+        summary = (
+            'По результатам теста наиболее выражены направления: '
+            + ', '.join(item['title'].lower() for item in top)
+            + '. Рекомендуется начать с базовых или стажерских ролей, чтобы проверить интерес на практике.'
+        )
         return {
-            'summary': f"По результатам опроса наиболее выражены направления: {', '.join(item['title'] for item in top)}. Ключевые баллы: {score_titles}.",
-            'preview_summary': 'Тест пройден. Мы определили ваши ведущие профессиональные склонности и сохранили результат.',
-            'recommended_professions': professions[:6],
-            'hh_search_queries': hh_search_queries[:6],
+            'summary': summary,
+            'recommended_professions': recommended[:6],
+            'hh_search_queries': hh_queries,
+            'preview_summary': preview,
         }

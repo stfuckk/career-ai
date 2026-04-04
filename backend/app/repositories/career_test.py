@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.ai_recommendation_job import AIRecommendationJob
 from app.models.career_recommendation import CareerRecommendation
 from app.models.career_test_attempt import CareerTestAttempt
 from app.models.career_test_score import CareerTestScore
@@ -36,7 +37,10 @@ class CareerTestRepository:
         return score
 
     async def upsert_recommendation(self, attempt: CareerTestAttempt, **kwargs) -> CareerRecommendation:
-        recommendation = attempt.recommendation
+        result = await self.db.execute(
+            select(CareerRecommendation).where(CareerRecommendation.attempt_id == attempt.id)
+        )
+        recommendation = result.scalar_one_or_none()
         if recommendation is None:
             recommendation = CareerRecommendation(attempt_id=attempt.id, **kwargs)
             self.db.add(recommendation)
@@ -52,8 +56,13 @@ class CareerTestRepository:
         recommendation: CareerRecommendation,
         vacancies: list[dict],
     ) -> list[VacancyRecommendation]:
-        recommendation.vacancies.clear()
+        result = await self.db.execute(
+            select(VacancyRecommendation).where(VacancyRecommendation.recommendation_id == recommendation.id)
+        )
+        for entity in result.scalars().all():
+            await self.db.delete(entity)
         await self.db.flush()
+
         entities = [
             VacancyRecommendation(
                 recommendation_id=recommendation.id,
@@ -81,6 +90,7 @@ class CareerTestRepository:
                 selectinload(CareerTestAttempt.score),
                 selectinload(CareerTestAttempt.recommendation).selectinload(CareerRecommendation.vacancies),
                 selectinload(CareerTestAttempt.methodology),
+                selectinload(CareerTestAttempt.ai_job),
             )
         )
         return result.scalar_one_or_none()
@@ -94,6 +104,7 @@ class CareerTestRepository:
                 selectinload(CareerTestAttempt.score),
                 selectinload(CareerTestAttempt.recommendation).selectinload(CareerRecommendation.vacancies),
                 selectinload(CareerTestAttempt.methodology),
+                selectinload(CareerTestAttempt.ai_job),
             )
         )
         return result.scalars().first()
