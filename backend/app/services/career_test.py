@@ -156,6 +156,7 @@ class CareerTestService:
             'about_user': raw_ai['about_user'],
             'career_fit': raw_ai['career_fit'],
             'development_recommendations': raw_ai['development_recommendations'],
+            'career_path': raw_ai.get('career_path'),
             'vacancies': [
                 {
                     'hh_vacancy_id': item.hh_vacancy_id,

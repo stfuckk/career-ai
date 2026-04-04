@@ -81,6 +81,18 @@ class DevelopmentRecommendationsRead(BaseModel):
     steps: list[str]
 
 
+class CareerPathStep(BaseModel):
+    title: str
+    skills_to_learn: list[str]
+    experience_required: str
+    hh_search_query: str
+
+
+class CareerPathRead(BaseModel):
+    current_position: str
+    steps: list[CareerPathStep]
+
+
 class CareerTestResultRead(BaseModel):
     created_at: str
     updated_at: str
@@ -93,4 +105,5 @@ class CareerTestResultRead(BaseModel):
     about_user: AboutUserRead
     career_fit: CareerFitRead
     development_recommendations: DevelopmentRecommendationsRead
+    career_path: CareerPathRead | None = None
     vacancies: list[VacancyRead] = []
