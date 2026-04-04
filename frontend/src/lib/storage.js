@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   profileDraft: 'career-ai-profile-draft',
   testScores: 'career-ai-test-results',
   testPreview: 'career-ai-test-preview',
+  testResult: 'career-ai-test-result',
   attemptToken: 'career-ai-attempt-token',
   authLoading: 'career-ai-auth-loading',
   authJob: 'career-ai-auth-job',
@@ -61,6 +62,7 @@ export function clearAuthStorage() {
   removeStorageValue(STORAGE_KEYS.accessToken)
   removeStorageValue(STORAGE_KEYS.authUser)
   removeStorageValue(STORAGE_KEYS.profileDraft)
+  removeStorageValue(STORAGE_KEYS.testResult)
   removeStorageValue(STORAGE_KEYS.authLoading)
   removeStorageValue(STORAGE_KEYS.authJob)
 }

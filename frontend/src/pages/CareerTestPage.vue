@@ -23,6 +23,9 @@
             <p v-if="!isSummaryVisible" class="mt-3 max-w-2xl text-sm leading-6 text-(--text-accent-soft) sm:text-base">
               Время прохождения 2-5 минут
             </p>
+            <p v-else class="mt-3 max-w-4xl text-sm leading-6 text-(--text-accent-soft) sm:text-base">
+              {{ previewSummaryText }}
+            </p>
           </div>
 
           <div
@@ -154,34 +157,46 @@
               </p>
             </div>
 
-            <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="mt-4 grid gap-4">
               <div
                 v-if="submitError"
-                class="rounded-3xl border border-rose-400/35 bg-rose-500/8 px-4 py-3 text-sm text-rose-700 sm:col-span-2 dark:text-rose-200"
+                class="rounded-3xl border border-rose-400/35 bg-rose-500/8 px-4 py-3 text-sm text-rose-700 dark:text-rose-200"
               >
                 {{ submitError }}
               </div>
 
-              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-5">
-                <h3 class="text-lg font-bold text-(--text-hero) sm:text-xl">Предварительный итог</h3>
-                <p class="mt-3 text-sm leading-6 text-(--text-main)/80 sm:text-base">
-                  {{ summaryAbout }}
-                </p>
-              </article>
-
-              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-5">
+              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-6">
                 <h3 class="text-lg font-bold text-(--text-hero) sm:text-xl">
                   Проф. склонности и баллы по категориям
                 </h3>
-                <p class="mt-3 text-sm leading-6 text-(--text-main)/80 sm:text-base">
-                  {{ summaryDirections }}
-                </p>
-                <p class="mt-4 text-sm font-semibold text-(--text-hero)">
-                  Доминирующие категории: {{ dominantCategoriesText }}
-                </p>
+                <div class="mt-5 space-y-4">
+                  <div
+                    v-for="score in previewScores"
+                    :key="score.key"
+                    class="rounded-3xl border p-4 transition"
+                    :class="dominantCategorySet.has(score.key) ? 'border-(--button-secondary)/45 bg-(--button-secondary)/7' : 'border-(--border-soft) bg-(--surface-soft-2)'"
+                  >
+                    <div class="flex items-center justify-between gap-4">
+                      <div class="min-w-0">
+                        <p class="font-semibold text-(--text-hero)">{{ score.title }}</p>
+                        <p class="mt-1 text-sm leading-6 text-(--text-main)/72">{{ score.label }}</p>
+                      </div>
+                      <div class="shrink-0 text-sm font-bold text-(--text-hero)">
+                        {{ score.score }}/12
+                      </div>
+                    </div>
+                    <div class="mt-3 h-2.5 rounded-full bg-(--surface-soft)">
+                      <div
+                        class="h-full rounded-full transition-[width]"
+                        :class="dominantCategorySet.has(score.key) ? 'bg-(--button-secondary)' : 'bg-(--text-muted)/45'"
+                        :style="{ width: `${(score.score / 12) * 100}%` }"
+                      />
+                    </div>
+                  </div>
+                </div>
               </article>
 
-              <div class="relative overflow-hidden rounded-3xl sm:col-span-2">
+              <div v-if="showRegistrationCta" class="relative overflow-hidden rounded-3xl">
                 <img
                   :src="careerLockedPreview"
                   alt="Превью закрытого персонального плана и списка вакансий"
@@ -194,7 +209,7 @@
                       Откройте полный доступ
                     </p>
                     <h3 class="mt-1.5 text-[13px] font-black uppercase leading-[0.9] tracking-[-0.03em] text-(--text-hero) sm:mt-3 sm:text-2xl">
-                      Пройдите бесплатную регистрацию
+                      Зарегистрируйся, чтобы увидеть полный результат
                     </h3>
                     <p class="mt-2 hidden text-[11px] leading-4 text-(--text-main)/75 sm:block sm:text-base sm:leading-6">
                       Откроем персональный план развития, список вакансий и детальный разбор ваших сильных сторон.
@@ -260,6 +275,12 @@ const isSummaryVisible = computed(() => isCompleted.value && !isLoadingResults.v
 const careerLockedPreview = computed(() =>
   isDark.value ? careerLockedPreviewDark : careerLockedPreviewLight,
 )
+const previewScores = computed(() => previewResult.value?.scores ?? [])
+const dominantCategorySet = computed(
+  () => new Set(previewResult.value?.dominant_categories ?? []),
+)
+const previewSummaryText = computed(() => previewResult.value?.preview_summary ?? summary.about)
+const showRegistrationCta = computed(() => previewResult.value?.registration_required !== false)
 
 const scoredColumns = computed(() => {
   const totals = Object.fromEntries(CAREER_TEST_COLUMNS.map((column) => [column.id, 0]))
@@ -277,25 +298,6 @@ const scoredColumns = computed(() => {
     ...column,
     score: totals[column.id],
   }))
-})
-
-const summaryAbout = computed(() => previewResult.value?.preview_summary ?? summary.about)
-const summaryDirections = computed(() => {
-  if (!previewResult.value?.scores?.length) {
-    return summary.directions
-  }
-
-  return previewResult.value.scores
-    .map((item) => `${item.title}: ${item.score}/12 (${item.label})`)
-    .join('; ')
-})
-
-const dominantCategoriesText = computed(() => {
-  if (!previewResult.value?.dominant_categories?.length) {
-    return 'После получения ответа от сервера здесь появятся доминирующие категории.'
-  }
-
-  return previewResult.value.dominant_categories.join(', ')
 })
 
 function persistScores(scoreValues) {

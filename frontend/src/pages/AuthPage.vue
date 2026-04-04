@@ -230,6 +230,7 @@ import { loginUser, registerUser } from '@/lib/api'
 import {
   STORAGE_KEYS,
   readStorageValue,
+  removeStorageValue,
   writeStorageJson,
   writeStorageValue,
 } from '@/lib/storage'
@@ -307,12 +308,6 @@ const backgroundStyle = computed(() => ({
   '--auth-bg-offset-x': `${pointerOffset.value.x}px`,
   '--auth-bg-offset-y': `${pointerOffset.value.y}px`,
 }))
-
-function toggleMode() {
-  mode.value = isLogin.value ? 'register' : 'login'
-  formError.value = ''
-  fieldErrors.value = {}
-}
 
 function setMode(nextMode) {
   mode.value = nextMode
@@ -453,14 +448,20 @@ function persistAuth(authResponse, options = {}) {
   writeStorageValue(STORAGE_KEYS.authFlag, 'true')
   writeStorageValue(STORAGE_KEYS.accessToken, authResponse.access_token)
   writeStorageJson(STORAGE_KEYS.authUser, authResponse.user)
-  writeStorageValue(STORAGE_KEYS.authLoading, options.withLoading ? 'true' : 'false')
+  writeStorageValue(
+    STORAGE_KEYS.authLoading,
+    options.withLoading || authResponse.job_id ? 'true' : 'false',
+  )
 
   if (authResponse.job_id) {
     writeStorageJson(STORAGE_KEYS.authJob, {
       jobId: authResponse.job_id,
       jobStatus: authResponse.job_status,
     })
+    return
   }
+
+  removeStorageValue(STORAGE_KEYS.authJob)
 }
 
 async function handleLoginSubmit() {
@@ -519,6 +520,7 @@ async function handleRegisterSubmit() {
       workExperienceMonths: payload.work_experience_months,
       hobbiesText: payload.hobbies_text,
     })
+    removeStorageValue(STORAGE_KEYS.testResult)
     persistAuth(response, { withLoading: true })
     await router.push('/')
   } catch (error) {

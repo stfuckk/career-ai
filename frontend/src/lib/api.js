@@ -52,7 +52,17 @@ async function apiRequest(path, { method = 'GET', body, token } = {}) {
   })
 
   const text = await response.text()
-  const payload = text ? JSON.parse(text) : null
+  let payload = null
+
+  if (text) {
+    try {
+      payload = JSON.parse(text)
+    } catch {
+      payload = {
+        detail: text,
+      }
+    }
+  }
 
   if (!response.ok) {
     throw normalizeErrorPayload(payload, response)

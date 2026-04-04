@@ -4,12 +4,12 @@
       <div
         class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-10"
       >
-        <a
+        <RouterLink
+          to="/vacancies"
           class="text-sm font-semibold tracking-[0.02em] text-(--text-hero) transition hover:opacity-80"
-          href="#"
         >
           Поиск вакансий
-        </a>
+        </RouterLink>
 
         <RouterLink
           to="/"

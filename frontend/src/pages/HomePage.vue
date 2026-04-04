@@ -22,16 +22,15 @@
 
         <div class="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 md:px-10 lg:px-10">
           <template v-if="isAuthenticated">
-            <div class="mt-4 sm:mt-4">
-              <h1
-                class="text-4xl font-black uppercase leading-[1.02] tracking-[-0.03em] text-(--text-hero) sm:text-6xl lg:text-7xl"
-              >
+            <div class="mt-4">
+              <h1 class="text-4xl font-black uppercase leading-[1.02] tracking-[-0.03em] text-(--text-hero) sm:text-6xl lg:text-7xl">
                 Ваши данные
               </h1>
-              <p
-                class="mt-6 text-base uppercase leading-snug tracking-[0.03em] text-(--text-body) sm:text-2xl"
-              >
-                Самая подходящая специальность - {{ primaryRecommendation }}
+              <p class="mt-5 text-base leading-7 text-(--text-main)/80 sm:max-w-4xl sm:text-lg sm:leading-8">
+                {{ headerSummary }}
+              </p>
+              <p class="mt-5 text-base uppercase leading-snug tracking-[0.03em] text-(--text-body) sm:text-2xl">
+                Самая подходящая специальность - {{ bestSpecialty }}
               </p>
             </div>
 
@@ -44,65 +43,132 @@
                 <p class="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-(--text-accent-soft)">
                   Формируем персональный результат
                 </p>
+                <p class="mt-3 text-sm text-(--text-main)/70">
+                  {{ loadingMessage }}
+                </p>
               </div>
             </div>
 
-            <div v-else class="mt-12 grid gap-5 lg:grid-cols-[0.7fr_1.8fr] lg:gap-8">
-              <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
-                <h2
-                  class="text-lg font-black uppercase tracking-[0.28em] text-(--text-hero) sm:text-2xl"
-                >
-                  О вас
-                </h2>
-                <ul class="mt-6 space-y-3 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
-                  <li v-for="item in profileSummary" :key="item">{{ item }}</li>
-                </ul>
-              </article>
+            <div
+              v-else-if="jobError"
+              class="mt-12 rounded-4xl border border-rose-400/35 bg-rose-500/8 p-6 text-rose-700 shadow-(--shadow-card) dark:text-rose-200"
+            >
+              {{ jobError }}
+            </div>
 
-              <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
-                <h2
-                  class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl"
-                >
-                  Проф. склонности, подходящие направления в работе,
+            <template v-else>
+              <div class="mt-12 grid gap-5 lg:grid-cols-[0.72fr_1.8fr] lg:gap-8">
+                <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
+                  <h2 class="text-lg font-black uppercase tracking-[0.28em] text-(--text-hero) sm:text-2xl">
+                    О вас
+                  </h2>
+                  <ul class="mt-6 space-y-3 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
+                    <li>Возраст: {{ aboutUser.age }}</li>
+                    <li>Опыт: {{ aboutUser.experience }}</li>
+                    <li>Образование: {{ aboutUser.education }}</li>
+                  </ul>
+
+                  <div class="mt-6">
+                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-(--text-accent-soft)">
+                      Сильные стороны
+                    </p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <span
+                        v-for="strength in aboutUser.strengths"
+                        :key="strength"
+                        class="rounded-full bg-(--surface-soft) px-3 py-2 text-xs font-semibold text-(--text-main) sm:text-sm"
+                      >
+                        {{ strength }}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
+                  <h2 class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl">
+                    Проф. склонности, подходящие направления в работе
+                  </h2>
+                  <div class="mt-6 max-w-5xl space-y-6 text-sm leading-6 text-(--text-main)/75 sm:text-base sm:leading-7">
+                    <p>{{ careerFit.summary }}</p>
+
+                    <div>
+                      <p class="font-semibold text-(--text-hero)">Ваши шкалы</p>
+                      <div class="mt-4 space-y-4">
+                        <div
+                          v-for="score in displayScores"
+                          :key="score.key"
+                          class="rounded-3xl border p-4 transition"
+                          :class="dominantCategorySet.has(score.key) ? 'border-(--button-secondary)/45 bg-(--button-secondary)/7' : 'border-(--border-soft) bg-(--surface-soft-2)'"
+                        >
+                          <div class="flex items-center justify-between gap-4">
+                            <div class="min-w-0">
+                              <p class="font-semibold text-(--text-hero)">{{ score.title }}</p>
+                              <p class="mt-1 text-sm leading-6 text-(--text-main)/72">{{ score.label }}</p>
+                            </div>
+                            <div class="shrink-0 text-sm font-bold text-(--text-hero)">
+                              {{ score.score }}/12
+                            </div>
+                          </div>
+                          <div class="mt-3 h-2.5 rounded-full bg-(--surface-soft)">
+                            <div
+                              class="h-full rounded-full transition-[width]"
+                              :class="dominantCategorySet.has(score.key) ? 'bg-(--button-secondary)' : 'bg-(--text-muted)/45'"
+                              :style="{ width: `${(score.score / 12) * 100}%` }"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p class="font-semibold text-(--text-hero)">Профессии подходящие для вас:</p>
+                      <div class="mt-3 flex flex-wrap gap-2">
+                        <span
+                          v-for="profession in careerFit.professions"
+                          :key="profession"
+                          class="rounded-full bg-(--surface-soft) px-3 py-2 text-sm font-medium text-(--text-main)"
+                        >
+                          {{ profession }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+
+              <article class="mt-8 rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
+                <h2 class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl">
+                  Рекомендации как улучшить навыки, повысить квалификацию
                 </h2>
-                <div class="mt-6 max-w-4xl space-y-5 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
-                  <p>{{ profileDescription }}</p>
+                <div class="mt-6 max-w-5xl space-y-5 text-sm leading-6 text-(--text-main)/75 sm:text-base sm:leading-7">
                   <div>
-                    <p class="font-semibold text-(--text-hero)">Профессии подходящие для вас:</p>
-                    <ol class="mt-2 space-y-1">
-                      <li v-for="(item, index) in recommendedRoles" :key="item">
-                        {{ index + 1 }}. {{ item }}
+                    <p class="mt-2">{{ developmentRecommendations.summary }}</p>
+                  </div>
+                  <div>
+                    <p class="font-semibold text-(--text-hero)">Как можно повысить квалификацию?</p>
+                    <ol class="mt-3 space-y-2">
+                      <li v-for="(step, index) in developmentRecommendations.steps" :key="step">
+                        {{ index + 1 }}. {{ step }}
                       </li>
                     </ol>
                   </div>
                 </div>
               </article>
-            </div>
 
-            <article
-              v-if="!isResultsLoading"
-              class="mt-8 rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8"
-            >
-              <h2
-                class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl"
-              >
-                Рекомендации как улучшить навыки, повысить квалификацию
-              </h2>
-              <div class="mt-6 max-w-5xl space-y-5 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
-                <div>
-                  <p class="font-semibold text-(--text-hero)">
-                    Рекомендации специально для вас
-                  </p>
-                  <p class="mt-2">{{ recommendationIntro }}</p>
-                </div>
-                <div>
-                  <p class="font-semibold text-(--text-hero)">Как можно повысить квалификацию?</p>
-                  <ul class="mt-2 space-y-1">
-                    <li v-for="item in improvementSteps" :key="item">{{ item }}</li>
-                  </ul>
-                </div>
+              <div class="mt-10 rounded-4xl px-6 py-8 text-center sm:px-10 sm:py-10">
+                <p class="text-lg uppercase leading-snug tracking-[0.03em] text-(--text-hero) sm:text-3xl">
+                  Хотите посмотреть
+                  <RouterLink
+                    to="/vacancies"
+                    class="underline decoration-current decoration-2 underline-offset-4 transition hover:opacity-75"
+                    style="text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;"
+                  >
+                    вакансии
+                  </RouterLink>,
+                  которые подойдут вам прямо сейчас?
+                </p>
               </div>
-            </article>
+            </template>
           </template>
 
           <template v-else>
@@ -145,11 +211,12 @@ import backgroundObjectLight from '@/assets/background-object-light.png'
 import SiteFooter from '@/components/SiteFooter.vue'
 import SiteHeader from '@/components/ThemedSiteHeader.vue'
 import { useTheme } from '@/composables/useTheme'
-import { readLatestTestResult } from '@/lib/api'
+import { readAiJobResult, readAiJobStatus, readLatestTestResult } from '@/lib/api'
 import {
   STORAGE_KEYS,
   readStorageJson,
   readStorageValue,
+  writeStorageJson,
   writeStorageValue,
 } from '@/lib/storage'
 
@@ -161,13 +228,15 @@ const isAuthenticated = ref(false)
 const isResultsLoading = ref(false)
 const pointerOffset = ref({ x: 0, y: 0 })
 const previewResult = ref(readStorageJson(STORAGE_KEYS.testPreview))
-const latestResult = ref(null)
+const fullResult = ref(readStorageJson(STORAGE_KEYS.testResult))
 const profileDraft = ref(readStorageJson(STORAGE_KEYS.profileDraft, {}))
 const authUser = ref(readStorageJson(STORAGE_KEYS.authUser))
+const authJob = ref(readStorageJson(STORAGE_KEYS.authJob))
+const jobError = ref('')
 
 let animationFrameId = 0
 let mediaQueryList = null
-let authLoadingTimeoutId = 0
+let pollingTimeoutId = 0
 let currentOffsetX = 0
 let currentOffsetY = 0
 let targetOffsetX = 0
@@ -179,91 +248,68 @@ const backgroundStyle = computed(() => ({
   '--homepage-bg-offset-y': `${pointerOffset.value.y}px`,
 }))
 
-const displayResult = computed(() => latestResult.value ?? previewResult.value)
-const profileSummary = computed(() => {
-  const items = []
+const headerSummary = computed(
+  () =>
+    fullResult.value?.preview_summary ??
+    previewResult.value?.preview_summary ??
+    'После прохождения теста здесь появится краткий итог по вашему профилю.',
+)
 
-  if (profileDraft.value?.age) {
-    items.push(`Возраст: ${profileDraft.value.age} лет`)
+const bestSpecialty = computed(
+  () =>
+    fullResult.value?.best_specialty ??
+    previewResult.value?.dominant_categories?.[0] ??
+    'результат теста',
+)
+
+const aboutUser = computed(() => ({
+  age: fullResult.value?.about_user?.age ?? (profileDraft.value?.age ? `${profileDraft.value.age} лет` : 'не указано'),
+  experience:
+    fullResult.value?.about_user?.experience ??
+    formatWorkExperience(profileDraft.value?.workExperienceMonths ?? authUser.value?.work_experience),
+  education:
+    fullResult.value?.about_user?.education ??
+    formatEducationLevel(profileDraft.value?.educationLevel ?? authUser.value?.education_level),
+  strengths:
+    fullResult.value?.about_user?.strengths ??
+    (profileDraft.value?.hobbiesText ? profileDraft.value.hobbiesText.split(',').map((item) => item.trim()).filter(Boolean) : ['Результат ещё формируется']),
+}))
+
+const displayScores = computed(() => fullResult.value?.scores ?? previewResult.value?.scores ?? [])
+const dominantCategorySet = computed(
+  () => new Set(fullResult.value?.dominant_categories ?? previewResult.value?.dominant_categories ?? []),
+)
+
+const careerFit = computed(() => ({
+  title: fullResult.value?.career_fit?.title ?? 'Проф. склонности, подходящие направления в работе,',
+  summary:
+    fullResult.value?.career_fit?.summary ??
+    'После полной обработки результата здесь появится развёрнутое описание ваших склонностей.',
+  professions: fullResult.value?.career_fit?.professions ?? [],
+}))
+
+const developmentRecommendations = computed(() => ({
+  title: fullResult.value?.development_recommendations?.title ?? 'Рекомендации как улучшить навыки, повысить квалификацию',
+  summary:
+    fullResult.value?.development_recommendations?.summary ??
+    'После обработки результата мы подготовим персональные рекомендации по развитию.',
+  steps:
+    fullResult.value?.development_recommendations?.steps ?? [
+      'Дождитесь завершения формирования персонального результата.',
+      'После этого здесь появятся три конкретных шага развития.',
+      'Также мы добавим подборку подходящих вакансий.',
+    ],
+}))
+
+const vacancies = computed(() => fullResult.value?.vacancies ?? [])
+const loadingMessage = computed(() => {
+  const status = authJob.value?.jobStatus
+
+  if (status === 'processing') {
+    return 'Нейросеть сейчас подготавливает персональные рекомендации.'
   }
 
-  if (profileDraft.value?.sex) {
-    items.push(`Пол: ${profileDraft.value.sex === 'male' ? 'мужской' : 'женский'}`)
-  }
-
-  if (profileDraft.value?.educationLevel) {
-    items.push(`Образование: ${formatEducationLevel(profileDraft.value.educationLevel)}`)
-  }
-
-  if (profileDraft.value?.workExperienceMonths || authUser.value?.work_experience) {
-    items.push(`Опыт: ${formatWorkExperience(profileDraft.value?.workExperienceMonths ?? authUser.value?.work_experience)}`)
-  }
-
-  if (profileDraft.value?.hobbiesText) {
-    items.push(`Интересы: ${profileDraft.value.hobbiesText}`)
-  }
-
-  if (!items.length) {
-    items.push('После регистрации здесь появятся ваши данные из анкеты.')
-  }
-
-  return items
-})
-
-const primaryRecommendation = computed(() => {
-  if (latestResult.value?.professions?.length) {
-    return latestResult.value.professions[0].name
-  }
-
-  if (displayResult.value?.dominant_categories?.length) {
-    return displayResult.value.dominant_categories[0]
-  }
-
-  return 'результат теста'
-})
-
-const profileDescription = computed(() => {
-  if (latestResult.value?.summary) {
-    return latestResult.value.summary
-  }
-
-  if (previewResult.value?.preview_summary) {
-    return previewResult.value.preview_summary
-  }
-
-  return 'После прохождения теста и регистрации здесь появится персональная интерпретация результата.'
-})
-
-const recommendedRoles = computed(() => {
-  if (latestResult.value?.professions?.length) {
-    return latestResult.value.professions.map((item) => item.name)
-  }
-
-  if (displayResult.value?.scores?.length) {
-    return displayResult.value.scores.map((item) => `${item.title}: ${item.score}/12 (${item.label})`)
-  }
-
-  return ['После обработки результата здесь появятся подходящие направления.']
-})
-
-const recommendationIntro = computed(() => {
-  if (displayResult.value?.dominant_categories?.length) {
-    return `Сейчас у вас лидируют направления: ${displayResult.value.dominant_categories.join(', ')}. После полной обработки добавим персональные рекомендации по развитию.`
-  }
-
-  return 'После обработки результата мы покажем персональные рекомендации именно для вас.'
-})
-
-const improvementSteps = computed(() => {
-  if (latestResult.value?.professions?.length) {
-    return latestResult.value.professions.map((item) => item.rationale)
-  }
-
-  return [
-    'Сохраните результат теста и следите за обновлением персональных рекомендаций.',
-    'После появления полной версии результата мы добавим список навыков для развития.',
-    'На следующем этапе здесь появятся подобранные вакансии и учебные маршруты.',
-  ]
+  return 'Собираем итог по результатам теста и данным профиля.'
 })
 
 function animateBackground() {
@@ -316,14 +362,107 @@ function syncAuthState() {
   isAuthenticated.value = readStorageValue(STORAGE_KEYS.authFlag) === 'true'
   isResultsLoading.value = readStorageValue(STORAGE_KEYS.authLoading) === 'true'
   previewResult.value = readStorageJson(STORAGE_KEYS.testPreview)
+  fullResult.value = readStorageJson(STORAGE_KEYS.testResult)
   profileDraft.value = readStorageJson(STORAGE_KEYS.profileDraft, {})
   authUser.value = readStorageJson(STORAGE_KEYS.authUser)
+  authJob.value = readStorageJson(STORAGE_KEYS.authJob)
+}
+
+function persistFullResult(result) {
+  fullResult.value = result
+  writeStorageJson(STORAGE_KEYS.testResult, result)
+}
+
+function finishLoading() {
+  isResultsLoading.value = false
+  writeStorageValue(STORAGE_KEYS.authLoading, 'false')
+}
+
+function scheduleNextPoll(jobId) {
+  pollingTimeoutId = window.setTimeout(() => {
+    pollJob(jobId)
+  }, 2500)
+}
+
+async function pollJob(jobId) {
+  try {
+    const status = await readAiJobStatus(jobId)
+    authJob.value = {
+      jobId,
+      jobStatus: status.status,
+    }
+    writeStorageJson(STORAGE_KEYS.authJob, authJob.value)
+
+    if (status.status === 'pending' || status.status === 'processing') {
+      scheduleNextPoll(jobId)
+      return
+    }
+
+    if (status.status === 'failed') {
+      jobError.value = status.error_message ?? 'Не удалось сформировать полный результат.'
+      finishLoading()
+      return
+    }
+
+    if (status.status === 'ready') {
+      const result = await readAiJobResult(jobId)
+      persistFullResult(result)
+      finishLoading()
+    }
+  } catch (error) {
+    jobError.value = error?.message ?? 'Не удалось получить статус формирования результата.'
+    finishLoading()
+  }
+}
+
+async function loadLatestResult() {
+  const token = readStorageValue(STORAGE_KEYS.accessToken)
+
+  if (!token) {
+    return
+  }
+
+  try {
+    const result = await readLatestTestResult(token)
+    persistFullResult(result)
+  } catch {
+    if (!fullResult.value) {
+      jobError.value = 'Не удалось загрузить сохранённый результат.'
+    }
+  }
+}
+
+function startAuthFlow() {
+  if (!isAuthenticated.value) {
+    return
+  }
+
+  if (pollingTimeoutId) {
+    window.clearTimeout(pollingTimeoutId)
+    pollingTimeoutId = 0
+  }
+
+  if (isResultsLoading.value && authJob.value?.jobId) {
+    jobError.value = ''
+    pollJob(authJob.value.jobId)
+    return
+  }
+
+  if (isResultsLoading.value && !authJob.value?.jobId) {
+    loadLatestResult().finally(() => {
+      finishLoading()
+    })
+    return
+  }
+
+  if (!isResultsLoading.value && !fullResult.value) {
+    loadLatestResult()
+  }
 }
 
 function handleStorageChange() {
   syncAuthState()
-  loadLatestResult()
-  startAuthLoadingIfNeeded()
+  startAuthFlow()
 }
 
 function formatEducationLevel(value) {
@@ -333,10 +472,9 @@ function formatEducationLevel(value) {
     bachelor: 'бакалавриат',
     master: 'магистратура',
     specialist: 'специалитет',
-    other: 'другое',
   }
 
-  return map[value] ?? value
+  return value ? map[value] ?? value : 'не указано'
 }
 
 function formatWorkExperience(monthsValue) {
@@ -360,34 +498,22 @@ function formatWorkExperience(monthsValue) {
   return `${restMonths} мес.`
 }
 
-async function loadLatestResult() {
-  const token = readStorageValue(STORAGE_KEYS.accessToken)
+function formatSalary(vacancy) {
+  const parts = []
 
-  if (!token) {
-    latestResult.value = null
-    return
+  if (vacancy.salary_from) {
+    parts.push(`от ${vacancy.salary_from}`)
   }
 
-  try {
-    latestResult.value = await readLatestTestResult(token)
-  } catch {
-    latestResult.value = null
-  }
-}
-
-function startAuthLoadingIfNeeded() {
-  if (!isAuthenticated.value || !isResultsLoading.value) {
-    return
+  if (vacancy.salary_to) {
+    parts.push(`до ${vacancy.salary_to}`)
   }
 
-  if (authLoadingTimeoutId) {
-    window.clearTimeout(authLoadingTimeoutId)
+  if (vacancy.currency) {
+    parts.push(vacancy.currency)
   }
 
-  authLoadingTimeoutId = window.setTimeout(() => {
-    writeStorageValue(STORAGE_KEYS.authLoading, 'false')
-    isResultsLoading.value = false
-  }, 1800)
+  return parts.join(' ') || 'Зарплата не указана'
 }
 
 onMounted(() => {
@@ -404,8 +530,8 @@ onBeforeUnmount(() => {
     window.cancelAnimationFrame(animationFrameId)
   }
 
-  if (authLoadingTimeoutId) {
-    window.clearTimeout(authLoadingTimeoutId)
+  if (pollingTimeoutId) {
+    window.clearTimeout(pollingTimeoutId)
   }
 
   mediaQueryList?.removeEventListener('change', updateInteractivity)
