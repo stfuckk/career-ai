@@ -9,7 +9,7 @@ class CareerTestScoresRequest(BaseModel):
     extreme_score: int = Field(ge=0, le=12)
     economic_score: int = Field(ge=0, le=12)
 
-    @model_validator(mode="after")
+    @model_validator(mode='after')
     def validate_total_score(self):
         total = (
             self.people_score
@@ -20,7 +20,7 @@ class CareerTestScoresRequest(BaseModel):
             + self.economic_score
         )
         if total != 24:
-            raise ValueError("Sum of all scores must be equal to 24")
+            raise ValueError('Sum of all scores must be equal to 24')
         return self
 
 
@@ -62,13 +62,35 @@ class CareerTestPreviewRead(BaseModel):
     registration_required: bool = True
 
 
+class AboutUserRead(BaseModel):
+    age: str
+    experience: str
+    strengths: list[str]
+    education: str
+
+
+class CareerFitRead(BaseModel):
+    title: str
+    summary: str
+    professions: list[str]
+
+
+class DevelopmentRecommendationsRead(BaseModel):
+    title: str
+    summary: str
+    steps: list[str]
+
+
 class CareerTestResultRead(BaseModel):
     created_at: str
     updated_at: str
     attempt_token: str
     methodology_slug: str
-    summary: str
+    preview_summary: str
+    best_specialty: str
     scores: list[CategoryScoreRead]
     dominant_categories: list[str]
-    professions: list[RecommendedProfessionRead]
+    about_user: AboutUserRead
+    career_fit: CareerFitRead
+    development_recommendations: DevelopmentRecommendationsRead
     vacancies: list[VacancyRead] = []

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.career_test_attempt import CareerTestAttempt
 from app.repositories.career_test import CareerTestRepository
 from app.schemas.career_test import CareerTestSubmitAnonymousRequest
+from app.services.bothub_ai import BothubAIScoreLabelsClient
 from app.services.methodology import MethodologyService
 
 CATEGORY_META = {
@@ -19,6 +20,7 @@ CATEGORY_META = {
 
 
 def score_label(score: int) -> str:
+    """Детерминированный label для превью (step 1). AI заменит его своим в финальном результате."""
     if 10 <= score <= 12:
         return 'ярко выраженная профессиональная склонность'
     if 7 <= score <= 9:
@@ -49,6 +51,10 @@ class CareerTestService:
         score_summary = self._build_score_summary(payload)
         dominant_categories = self._extract_dominant_categories(score_summary)
 
+        # Обогащаем labels через AI (лёгкий запрос, только шкалы).
+        # При ошибке AI оставляем детерминированные labels — превью не критично.
+        score_summary = await self._enrich_score_labels_with_ai(score_summary)
+
         await self.repo.create_score(
             attempt_id=attempt.id,
             people_score=payload.scores.people_score,
@@ -64,7 +70,6 @@ class CareerTestService:
         attempt.score_summary_json = score_summary
         await self.db.commit()
 
-        # ВАЖНО: перечитываем attempt уже с eager-loaded relationship'ами
         loaded_attempt = await self.repo.get_attempt_by_token(attempt.public_token)
         if loaded_attempt is None:
             raise HTTPException(
@@ -120,16 +125,37 @@ class CareerTestService:
         }
 
     def serialize_result(self, attempt: CareerTestAttempt) -> dict:
+        """
+        Сериализует финальный AI-результат для UI.
+        Никаких fallback-значений: если AI не вернул нужные поля,
+        это должно было быть поймано раньше и перевести job в failed.
+        """
         recommendation = attempt.recommendation
+        if recommendation is None:
+            raise ValueError('CareerRecommendation not found for this attempt')
+
+        raw_ai = recommendation.raw_ai_response
+        if not raw_ai:
+            raise ValueError('raw_ai_response is empty — AI result was not saved correctly')
+
+        # Все поля обязаны присутствовать — без fallback
+        required_fields = ['preview_summary', 'best_specialty', 'scores', 'about_user', 'career_fit', 'development_recommendations']
+        missing = [f for f in required_fields if not raw_ai.get(f)]
+        if missing:
+            raise ValueError(f'AI response is missing required fields: {", ".join(missing)}')
+
         return {
             'created_at': attempt.created_at.isoformat(),
             'updated_at': attempt.updated_at.isoformat(),
             'attempt_token': attempt.public_token,
             'methodology_slug': attempt.methodology.slug,
-            'summary': recommendation.summary if recommendation else attempt.preview_summary or '',
-            'scores': attempt.score_summary_json,
+            'preview_summary': raw_ai['preview_summary'],
+            'best_specialty': raw_ai['best_specialty'],
+            'scores': raw_ai['scores'],
             'dominant_categories': attempt.score.dominant_categories if attempt.score else [],
-            'professions': recommendation.recommended_professions if recommendation else [],
+            'about_user': raw_ai['about_user'],
+            'career_fit': raw_ai['career_fit'],
+            'development_recommendations': raw_ai['development_recommendations'],
             'vacancies': [
                 {
                     'hh_vacancy_id': item.hh_vacancy_id,
@@ -142,9 +168,26 @@ class CareerTestService:
                     'currency': item.currency,
                     'snippet': item.snippet,
                 }
-                for item in (recommendation.vacancies if recommendation else [])
+                for item in recommendation.vacancies
             ],
         }
+
+    async def _enrich_score_labels_with_ai(self, score_summary: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        Запрашивает у AI человечные label для каждой шкалы.
+        Если AI недоступен или вернул невалидный ответ — возвращает оригинальный score_summary
+        с детерминированными labels (превью, не финальный результат).
+        """
+        try:
+            ai = BothubAIScoreLabelsClient()
+            labels = await ai.generate_score_labels(score_summary)
+            return [
+                {**item, 'label': labels[item['key']]}
+                for item in score_summary
+            ]
+        except Exception:  # noqa: BLE001
+            # Fallback на детерминированные labels только для превью
+            return score_summary
 
     def _build_score_summary(self, payload: CareerTestSubmitAnonymousRequest) -> list[dict[str, Any]]:
         items = [
@@ -170,6 +213,16 @@ class CareerTestService:
             return []
         max_score = max(item['score'] for item in score_summary)
         return [item['key'] for item in score_summary if item['score'] == max_score]
+
+    def _education_to_text(self, education_level: str | None) -> str:
+        mapping = {
+            'school': 'Школа',
+            'college': 'Колледж',
+            'bachelor': 'Бакалавриат',
+            'master': 'Магистратура',
+            'specialist': 'Специалитет',
+        }
+        return mapping.get(str(education_level), str(education_level or 'Образование: не указано'))
 
 
 def serialize_score(score) -> dict[str, Any]:

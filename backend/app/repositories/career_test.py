@@ -62,7 +62,6 @@ class CareerTestRepository:
         for entity in result.scalars().all():
             await self.db.delete(entity)
         await self.db.flush()
-
         entities = [
             VacancyRecommendation(
                 recommendation_id=recommendation.id,

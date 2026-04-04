@@ -1,6 +1,8 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -10,8 +12,26 @@ from app.models import *  # noqa: F403
 from app.services.methodology import MethodologyService
 
 
+async def wait_for_database() -> None:
+    last_error: Exception | None = None
+    for attempt in range(1, settings.db_connect_max_retries + 1):
+        try:
+            async with engine.connect() as connection:
+                await connection.execute(text('SELECT 1'))
+            return
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            if attempt == settings.db_connect_max_retries:
+                break
+            await asyncio.sleep(settings.db_connect_retry_delay_seconds)
+    if last_error is not None:
+        raise last_error
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    await wait_for_database()
+
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
 
