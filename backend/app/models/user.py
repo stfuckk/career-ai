@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Integer, String
+from sqlalchemy import Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -14,6 +14,7 @@ class User(TimestampMixin, Base):
     sex: Mapped[str] = mapped_column(String(255))
     education_level: Mapped[str] = mapped_column(String(255))
     work_experience: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    hobbies_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_first_time_completing_test: Mapped[bool] = mapped_column(Boolean, default=True)
 
     attempts = relationship(

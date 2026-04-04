@@ -86,11 +86,28 @@ class CareerPathStep(BaseModel):
     skills_to_learn: list[str]
     experience_required: str
     hh_search_query: str
+    courses: list['CourseRead'] = []
 
 
 class CareerPathRead(BaseModel):
     current_position: str
     steps: list[CareerPathStep]
+
+
+class CourseRead(BaseModel):
+    stepik_course_id: int
+    skill: str
+    title: str
+    summary: str | None = None
+    url: str
+    cover_url: str | None = None
+    price: float | None = None
+    currency: str | None = None
+    is_free: bool = True
+    time_to_complete_hours: int | None = None
+    total_units: int | None = None
+    learners_count: int = 0
+    average_rating: float | None = None
 
 
 class CareerTestResultRead(BaseModel):

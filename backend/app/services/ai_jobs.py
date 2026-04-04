@@ -7,6 +7,7 @@ from app.db.session import AsyncSessionLocal
 from app.models.ai_recommendation_job import AIJobStatusEnum, AIRecommendationJob
 from app.models.career_test_attempt import CareerTestAttempt
 from app.models.career_recommendation import CareerRecommendation
+from app.models.course_recommendation import CourseRecommendation  # noqa: F401 — triggers mapper registration
 from app.models.test_methodology import TestMethodology
 from app.repositories.career_test import CareerTestRepository
 from app.services.bothub_ai import BothubAIClient
@@ -23,6 +24,9 @@ def _build_attempt_options():
         selectinload(AIRecommendationJob.attempt)
         .selectinload(CareerTestAttempt.recommendation)
         .selectinload(CareerRecommendation.vacancies),
+        selectinload(AIRecommendationJob.attempt)
+        .selectinload(CareerTestAttempt.recommendation)
+        .selectinload(CareerRecommendation.courses),
     ]
 
 
@@ -113,6 +117,22 @@ async def process_ai_recommendation_job(job_id: str) -> None:
             if vacancies:
                 await repo.replace_vacancies(recommendation, vacancies)
                 logger.info('Job %s: saved %d vacancies', job_id, len(vacancies))
+
+            # Курсы для каждого шага карьерного пути (Stepik API)
+            career_path = ai_result.get('career_path')
+            if career_path and isinstance(career_path, dict) and career_path.get('steps'):
+                from app.services.courses import StepikClient
+
+                stepik = StepikClient()
+                courses_by_step = await stepik.search_courses_for_career_path(
+                    career_path_steps=career_path['steps'],
+                )
+                total = sum(len(v) for v in courses_by_step.values())
+                if total > 0:
+                    await repo.replace_courses(recommendation, courses_by_step)
+                    logger.info('Job %s: saved %d courses for %d steps', job_id, total, len(courses_by_step))
+                else:
+                    logger.warning('Job %s: Stepik returned 0 courses, existing courses were not replaced', job_id)
 
             job.status = AIJobStatusEnum.ready
             job.error_message = None

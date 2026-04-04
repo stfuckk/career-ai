@@ -22,3 +22,8 @@ class CareerRecommendation(TimestampMixin, Base):
         back_populates='recommendation',
         cascade='all, delete-orphan',
     )
+    courses = relationship(
+        'CourseRecommendation',
+        back_populates='recommendation',
+        cascade='all, delete-orphan',
+    )
