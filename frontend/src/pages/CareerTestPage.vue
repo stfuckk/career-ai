@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div
     class="flex flex-col bg-(--page-bg-alt) transition-colors duration-300"
     :class="isSummaryVisible ? 'min-h-screen overflow-visible' : 'h-screen overflow-hidden'"
@@ -13,18 +13,15 @@
         class="flex flex-1 px-0 py-4 sm:px-4 sm:py-5 lg:px-8"
         :class="isSummaryVisible ? 'min-h-0 items-start pb-8 sm:pb-10' : 'min-h-0 overflow-hidden'"
       >
-        <div
-          class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 sm:px-6 lg:px-8"
-          :class="isSummaryVisible ? 'min-h-0' : 'min-h-0'"
-        >
+        <div class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 sm:px-6 lg:px-8">
           <div class="max-w-5xl shrink-0">
             <h1
               class="mt-2 text-3xl font-black uppercase leading-[0.95] tracking-[-0.04em] text-(--text-hero) sm:text-5xl"
             >
               Тест по определению направления
             </h1>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-(--text-accent-soft) sm:text-base">
-              Ответьте на несколько вопросов, чтобы получить анализ.
+            <p v-if="!isSummaryVisible" class="mt-3 max-w-2xl text-sm leading-6 text-(--text-accent-soft) sm:text-base">
+              Время прохождения 2-5 минут
             </p>
           </div>
 
@@ -32,8 +29,8 @@
             v-if="!isSummaryVisible"
             class="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-4xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-6"
           >
-            <div ref="timelineContainerRef" class="shrink-0 overflow-x-auto pb-2">
-              <div class="flex min-w-max items-center justify-center mx-auto">
+            <div ref="timelineContainerRef" class="timeline-scrollbar-hidden shrink-0 overflow-x-auto pb-2">
+              <div class="mx-auto flex min-w-max items-center justify-center">
                 <template v-for="(question, index) in questions" :key="question.id">
                   <div
                     :ref="(element) => setTimelineItemRef(question.id, element)"
@@ -100,7 +97,7 @@
                   <div
                     class="mt-3 inline-flex rounded-2xl bg-emerald-500/14 px-4 py-3 text-sm font-semibold leading-6 text-emerald-700 transition dark:text-emerald-300"
                   >
-                    {{ getConfirmedOption(question.id) }}
+                    {{ getConfirmedOptionLabel(question.id) }}
                   </div>
                 </div>
 
@@ -108,13 +105,14 @@
                   <div class="grid gap-2.5">
                     <button
                       v-for="option in question.options"
-                      :key="option"
+                      :key="option.key"
                       type="button"
                       class="rounded-2xl border px-4 py-3 text-left text-sm leading-6 transition sm:text-base"
-                      :class="selectedOptionClass(question.id, option)"
-                      @click="selectAnswer(question.id, option)"
+                      :class="selectedOptionClass(question.id, option.key)"
+                      @click="selectAnswer(question.id, option.key)"
                     >
-                      {{ option }}
+                      <span class="font-semibold text-(--text-hero)">{{ option.prefix }})</span>
+                      {{ ' ' }}{{ option.label }}
                     </button>
                   </div>
 
@@ -142,16 +140,13 @@
                 <p class="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-(--text-accent-soft)">
                   Анализируем ответы
                 </p>
-                <p class="mt-2 text-sm text-(--text-main)/75 sm:text-base">
-                  Подготавливаем результаты
-                </p>
               </div>
             </div>
           </div>
 
           <section
             v-if="isSummaryVisible"
-            class="flex flex-col rounded-4xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-6"
+            class="flex flex-col"
           >
             <div class="max-w-3xl shrink-0">
               <p class="text-sm font-semibold uppercase tracking-[0.24em] text-(--text-accent-soft)">
@@ -160,14 +155,14 @@
             </div>
 
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
-              <article class="rounded-3xl bg-(--surface-soft) p-4 sm:p-5">
+              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-5">
                 <h3 class="text-lg font-bold text-(--text-hero) sm:text-xl">О вас</h3>
                 <p class="mt-3 text-sm leading-6 text-(--text-main)/80 sm:text-base">
                   {{ summary.about }}
                 </p>
               </article>
 
-              <article class="rounded-3xl bg-(--surface-soft) p-4 sm:p-5">
+              <article class="rounded-3xl bg-(--surface) p-4 shadow-(--shadow-card) sm:p-5">
                 <h3 class="text-lg font-bold text-(--text-hero) sm:text-xl">
                   Проф. склонности, подходящие направления
                 </h3>
@@ -176,20 +171,15 @@
                 </p>
               </article>
 
-              <div class="relative isolate overflow-hidden rounded-3xl bg-(--surface-soft) sm:col-span-2">
+              <div class="relative overflow-hidden rounded-3xl sm:col-span-2">
                 <img
                   :src="careerLockedPreview"
                   alt="Превью закрытого персонального плана и списка вакансий"
-                  class="block h-64 w-full scale-[1.03] object-cover object-center sm:h-110 sm:scale-[1.02]"
+                  class="block w-full h-auto"
                 />
 
-                <div class="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
-                  <div class="absolute inset-0 backdrop-blur-[10px] backdrop-brightness-125 dark:backdrop-brightness-75" />
-                  <div class="absolute inset-0 bg-white/18 dark:bg-[rgba(8,10,24,0.30)]" />
-                </div>
-
-                <div class="absolute inset-x-3 top-3 flex justify-center sm:inset-x-6 sm:top-6">
-                  <div class="w-full max-w-xl rounded-[1.1rem] bg-(--surface)/94 px-3 py-2.5 text-center shadow-(--shadow-card) sm:max-w-lg sm:rounded-3xl sm:px-6 sm:py-5">
+                <div class="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+                  <div class="w-full max-w-xl rounded-[1.1rem] bg-(--surface)/94 px-3 py-3 text-center shadow-(--shadow-card) sm:rounded-3xl sm:px-6 sm:py-5">
                     <p class="text-[10px] font-semibold uppercase tracking-[0.18em] text-(--text-accent-soft) sm:text-sm sm:tracking-[0.22em]">
                       Откройте полный доступ
                     </p>
@@ -221,12 +211,20 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import careerLockedPreview from '@/assets/career-locked-preview.jpg'
+import careerLockedPreviewDark from '@/assets/career-locked-preview-dark.png'
+import careerLockedPreviewLight from '@/assets/career-locked-preview-light.png'
 import SiteHeader from '@/components/ThemedSiteHeader.vue'
-import { CAREER_TEST_QUESTIONS, CAREER_TEST_SUMMARY } from '@/constants/careerTest'
+import {
+  CAREER_TEST_COLUMNS,
+  CAREER_TEST_QUESTIONS,
+  CAREER_TEST_SUMMARY,
+} from '@/constants/careerTest'
+import { useTheme } from '@/composables/useTheme'
 
 const questions = CAREER_TEST_QUESTIONS
 const summary = CAREER_TEST_SUMMARY
+const RESULTS_STORAGE_KEY = 'career-ai-test-results'
+const { isDark } = useTheme()
 
 const draftAnswers = reactive({})
 const confirmedAnswers = reactive({})
@@ -241,9 +239,39 @@ const visibleQuestionCount = computed(() => Math.min(completedCount.value + 1, q
 const visibleQuestions = computed(() => questions.slice(0, visibleQuestionCount.value))
 const isCompleted = computed(() => completedCount.value === questions.length)
 const isSummaryVisible = computed(() => isCompleted.value && !isLoadingResults.value)
+const careerLockedPreview = computed(() =>
+  isDark.value ? careerLockedPreviewDark : careerLockedPreviewLight,
+)
 
-function selectAnswer(questionId, option) {
-  draftAnswers[questionId] = option
+const scoredColumns = computed(() => {
+  const totals = Object.fromEntries(CAREER_TEST_COLUMNS.map((column) => [column.id, 0]))
+
+  for (const question of questions) {
+    const selectedKey = confirmedAnswers[question.id]
+    const selectedOption = question.options.find((option) => option.key === selectedKey)
+
+    if (selectedOption) {
+      totals[selectedOption.column] += 1
+    }
+  }
+
+  return CAREER_TEST_COLUMNS.map((column) => ({
+    ...column,
+    score: totals[column.id],
+  }))
+})
+
+function persistResults() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const values = scoredColumns.value.map((column) => column.score)
+  window.localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(values))
+}
+
+function selectAnswer(questionId, optionKey) {
+  draftAnswers[questionId] = optionKey
 }
 
 async function confirmAnswer(questionId) {
@@ -254,6 +282,7 @@ async function confirmAnswer(questionId) {
   confirmedAnswers[questionId] = draftAnswers[questionId]
 
   if (Object.keys(confirmedAnswers).length === questions.length) {
+    persistResults()
     isLoadingResults.value = true
 
     if (resultsTimeoutId) {
@@ -263,7 +292,7 @@ async function confirmAnswer(questionId) {
     resultsTimeoutId = setTimeout(() => {
       isLoadingResults.value = false
       resultsTimeoutId = null
-    }, 2000)
+    }, 1200)
 
     return
   }
@@ -286,8 +315,12 @@ function isQuestionConfirmed(index) {
   return Boolean(confirmedAnswers[questions[index].id])
 }
 
-function getConfirmedOption(questionId) {
-  return confirmedAnswers[questionId]
+function getConfirmedOptionLabel(questionId) {
+  const question = questions.find((item) => item.id === questionId)
+  const selectedKey = confirmedAnswers[questionId]
+  const option = question?.options.find((item) => item.key === selectedKey)
+
+  return option ? `${option.prefix}) ${option.label}` : ''
 }
 
 function timelineCircleClass(index) {
@@ -302,8 +335,8 @@ function timelineCircleClass(index) {
   return 'border-(--border-soft) bg-(--surface-soft) text-(--text-muted)'
 }
 
-function selectedOptionClass(questionId, option) {
-  return draftAnswers[questionId] === option
+function selectedOptionClass(questionId, optionKey) {
+  return draftAnswers[questionId] === optionKey
     ? 'border-(--button-secondary) bg-(--button-secondary)/10 text-(--text-hero)'
     : 'border-(--border-soft) bg-(--surface) text-(--text-main) hover:border-(--button-secondary)/50 hover:bg-(--surface-soft)'
 }
@@ -356,3 +389,14 @@ onBeforeUnmount(() => {
   }
 })
 </script>
+
+<style scoped>
+.timeline-scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.timeline-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+</style>

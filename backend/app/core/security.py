@@ -1,20 +1,38 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _bcrypt_secret(password: str) -> str:
+    """64-char hex fits bcrypt's 72-byte limit; supports any UTF-8 password length."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    hpw = hashed_password.encode("utf-8")
+    try:
+        if bcrypt.checkpw(_bcrypt_secret(plain_password).encode("ascii"), hpw):
+            return True
+    except (ValueError, TypeError):
+        pass
+    # Legacy: bcrypt(passlib) of plain password; bcrypt rejects secrets > 72 bytes.
+    if len(plain_password.encode("utf-8")) > 72:
+        return False
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hpw)
+    except ValueError:
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    secret = _bcrypt_secret(password).encode("ascii")
+    hashed = bcrypt.hashpw(secret, bcrypt.gensalt())
+    return hashed.decode("ascii")
 
 
 def create_access_token(subject: str) -> str:
