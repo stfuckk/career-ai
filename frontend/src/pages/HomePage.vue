@@ -1,11 +1,15 @@
 ﻿<template>
-  <div class="flex min-h-screen flex-col bg-(--page-bg) transition-colors duration-300">
+  <div
+    class="flex flex-col bg-(--page-bg) transition-colors duration-300"
+    :class="isAuthenticated ? 'min-h-screen' : 'h-screen overflow-hidden'"
+  >
     <SiteHeader />
 
-    <main class="flex-1">
+    <main class="flex min-h-0 flex-1">
       <section
         ref="heroSectionRef"
-        class="homepage-hero relative overflow-hidden px-0 py-20 sm:px-10 sm:py-30 lg:px-32"
+        class="homepage-hero relative box-border min-h-0 flex-1 px-0 sm:px-10 lg:px-32"
+        :class="isAuthenticated ? 'overflow-x-hidden py-16 sm:py-20 lg:py-24' : 'flex items-center overflow-hidden py-10 sm:py-14 lg:py-16'"
         @pointermove="handlePointerMove"
         @pointerleave="resetPointerOffset"
       >
@@ -17,27 +21,120 @@
         />
 
         <div class="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 md:px-10 lg:px-10">
-          <h1
-            class="text-4xl font-black uppercase leading-[1.06] tracking-[0.02em] text-(--text-hero) sm:text-7xl lg:text-7xl"
-          >
-            Тест по определению направления
-          </h1>
-          <p
-            class="mt-6 text-base uppercase leading-snug tracking-[-0.02em] text-(--text-body) sm:mt-8 sm:text-2xl"
-          >
-            Прохождение этого теста сэкономит вам время и поможет подобрать вакансии специально для
-            вас
-          </p>
-
-          <div class="mt-12 flex justify-center sm:mt-16">
-            <RouterLink
-              to="/test"
-              class="inline-flex min-h-14 items-center justify-center rounded-full bg-(--button-primary) px-8 text-center text-base uppercase tracking-[0.08em] text-(--button-text) shadow-(--shadow-button) transition hover:-translate-y-0.5 hover:bg-(--button-primary-hover) sm:min-h-16 sm:min-w-100 sm:px-16 sm:text-2xl"
-              style="color: var(--button-text)"
-            >
-              Пройти тест
-            </RouterLink>
+          <div class="absolute top-0 right-4 z-20 sm:right-6 md:right-10 lg:right-10">
+            <div class="rounded-full bg-(--surface) px-4 py-2 shadow-(--shadow-card) transition-colors duration-300">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-semibold uppercase tracking-[0.16em] text-(--text-accent-soft)">
+                  Тестовый вход
+                </span>
+                <button
+                  type="button"
+                  class="relative h-8 w-15 rounded-full transition-colors duration-300"
+                  :class="isAuthenticated ? 'bg-(--button-secondary)' : 'bg-(--surface-soft)'"
+                  :aria-pressed="isAuthenticated"
+                  @click="toggleAuthState"
+                >
+                  <span
+                    class="absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300"
+                    :class="isAuthenticated ? 'translate-x-7' : 'translate-x-0'"
+                  />
+                </button>
+              </div>
+            </div>
           </div>
+
+          <template v-if="isAuthenticated">
+            <div class="mt-4 sm:mt-4">
+              <h1
+                class="text-4xl font-black uppercase leading-[1.02] tracking-[-0.03em] text-(--text-hero) sm:text-6xl lg:text-7xl"
+              >
+                Ваши данные
+              </h1>
+              <p
+                class="mt-6 text-base uppercase leading-snug tracking-[0.03em] text-(--text-body) sm:text-2xl"
+              >
+                Самая подходящая специальность - {{ primaryRecommendation }}
+              </p>
+            </div>
+
+            <div class="mt-12 grid gap-5 lg:grid-cols-[0.7fr_1.8fr] lg:gap-8">
+              <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
+                <h2
+                  class="text-lg font-black uppercase tracking-[0.28em] text-(--text-hero) sm:text-2xl"
+                >
+                  О вас
+                </h2>
+                <ul class="mt-6 space-y-3 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
+                  <li v-for="item in profileSummary" :key="item">{{ item }}</li>
+                </ul>
+              </article>
+
+              <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
+                <h2
+                  class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl"
+                >
+                  Проф. склонности, подходящие направления в работе,
+                </h2>
+                <div class="mt-6 max-w-4xl space-y-5 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
+                  <p>{{ profileDescription }}</p>
+                  <div>
+                    <p class="font-semibold text-(--text-hero)">Профессии подходящие для вас:</p>
+                    <ol class="mt-2 space-y-1">
+                      <li v-for="(item, index) in recommendedRoles" :key="item">
+                        {{ index + 1 }}. {{ item }}
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <article class="mt-8 rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
+              <h2
+                class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl"
+              >
+                Рекомендации как улучшить навыки, повысить квалификацию
+              </h2>
+              <div class="mt-6 max-w-5xl space-y-5 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
+                <div>
+                  <p class="font-semibold text-(--text-hero)">
+                    Рекомендации специально для вас
+                  </p>
+                  <p class="mt-2">{{ recommendationIntro }}</p>
+                </div>
+                <div>
+                  <p class="font-semibold text-(--text-hero)">Как можно повысить квалификацию?</p>
+                  <ul class="mt-2 space-y-1">
+                    <li v-for="item in improvementSteps" :key="item">{{ item }}</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+          </template>
+
+          <template v-else>
+            <h1
+              class="mt-8 text-4xl font-black uppercase leading-[1.06] tracking-[0.02em] text-(--text-hero) sm:mt-12 sm:text-7xl lg:text-7xl"
+            >
+              Тест по определению направления
+            </h1>
+            <p
+              class="mt-6 text-base uppercase leading-snug tracking-[-0.02em] text-(--text-body) sm:mt-8 sm:text-2xl"
+            >
+              Прохождение этого теста сэкономит вам время и поможет подобрать вакансии специально для
+              вас
+            </p>
+
+            <div class="mt-12 flex justify-center sm:mt-16">
+              <RouterLink
+                to="/test"
+                class="inline-flex min-h-14 items-center justify-center rounded-full bg-(--button-primary) px-8 text-center text-base uppercase tracking-[0.08em] text-(--button-text) shadow-(--shadow-button) transition hover:-translate-y-0.5 hover:bg-(--button-primary-hover) sm:min-h-16 sm:min-w-100 sm:px-16 sm:text-2xl"
+                style="color: var(--button-text)"
+              >
+                Пройти тест
+              </RouterLink>
+            </div>
+          </template>
         </div>
       </section>
     </main>
@@ -57,9 +154,35 @@ import SiteHeader from '@/components/ThemedSiteHeader.vue'
 import { useTheme } from '@/composables/useTheme'
 
 const { isDark } = useTheme()
+const AUTH_STORAGE_KEY = 'career-ai-demo-auth'
+
+const primaryRecommendation = 'разработчик на питоне'
+const profileSummary = [
+  'Возраст: 22 года',
+  'Опыт: 1,5 года в IT-секторе',
+  'Сильные стороны: системное мышление, интерес к автоматизации, базовое владение синтаксисом.',
+  'Образование: бакалавриат',
+]
+const profileDescription =
+  'Ваши проф. склонности: высокий уровень логического анализа, склонность к работе с алгоритмами и структурированными данными. Способность к быстрому освоению новых библиотек.'
+const recommendedRoles = [
+  'Python Backend Developer',
+  'Data Engineer',
+  'Automation QA (Python)',
+  'DevOps Engineer',
+  'Data Analyst',
+]
+const recommendationIntro =
+  'Ваш текущий фундамент позволяет совершить быстрый переход в разработку. Мы рекомендуем сфокусироваться на backend-направлении и постепенно усиливать знания по работе с API и базами данных.'
+const improvementSteps = [
+  'Реализуйте проект с сервисом доставки и использованием асинхронности.',
+  'Изучите Docker для контейнеризации своих приложений.',
+  'Пройдите курс по архитектуре распределенных систем.',
+]
 
 const heroSectionRef = ref(null)
 const isInteractive = ref(false)
+const isAuthenticated = ref(false)
 const pointerOffset = ref({ x: 0, y: 0 })
 
 let animationFrameId = 0
@@ -121,8 +244,27 @@ function resetPointerOffset() {
   targetOffsetY = 0
 }
 
+function syncAuthState() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  isAuthenticated.value = window.localStorage.getItem(AUTH_STORAGE_KEY) === 'true'
+}
+
+function toggleAuthState() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const nextValue = !isAuthenticated.value
+  window.localStorage.setItem(AUTH_STORAGE_KEY, String(nextValue))
+  isAuthenticated.value = nextValue
+}
+
 onMounted(() => {
   mediaQueryList = window.matchMedia('(min-width: 768px) and (pointer: fine)')
+  syncAuthState()
   updateInteractivity()
   mediaQueryList.addEventListener('change', updateInteractivity)
   animationFrameId = window.requestAnimationFrame(animateBackground)
@@ -144,8 +286,8 @@ onBeforeUnmount(() => {
 
 .homepage-hero__background {
   position: absolute;
-  inset: 50% auto auto 50%;
-  width: min(72vw, 920px);
+  inset: 44% auto auto 50%;
+  width: min(88vw, 1120px);
   aspect-ratio: 1 / 1;
   background-image: var(--homepage-bg-image);
   background-repeat: no-repeat;
@@ -168,10 +310,9 @@ onBeforeUnmount(() => {
 
 @media (max-width: 767px), (pointer: coarse) {
   .homepage-hero__background {
-    width: min(110vw, 640px);
+    width: min(135vw, 820px);
     opacity: 0.82;
-    transform: translate3d(-50%, -50%, 0);
+    transform: translate3d(-50%, -44%, 0);
   }
 }
 </style>
-
