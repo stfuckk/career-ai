@@ -1,17 +1,23 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
+
+from app.schemas.user import UserRead
 
 
 class UserRegisterRequest(BaseModel):
-    email: EmailStr
+    login: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=8, max_length=128)
-    full_name: str | None = Field(default=None, max_length=255)
+    attempt_token: str = Field(min_length=1, max_length=128)
 
 
 class UserLoginRequest(BaseModel):
-    email: EmailStr
+    login: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=8, max_length=128)
 
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str = 'bearer'
+
+
+class AuthResponse(TokenResponse):
+    user: UserRead
