@@ -157,7 +157,7 @@
 
               <article
                 v-if="careerPath"
-                class="career-path-card mt-8 rounded-[2rem] bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8 lg:p-10"
+                class="career-path-card mt-8 rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8 lg:p-10"
               >
                 <div class="text-center">
                   <p class="text-sm font-black uppercase tracking-[0.42em] text-(--text-hero) sm:text-base">

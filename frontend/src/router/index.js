@@ -3,7 +3,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { readCurrentUser } from '@/lib/api'
 import { STORAGE_KEYS, clearAuthStorage, readStorageValue, writeStorageJson } from '@/lib/storage'
 import AuthPage from '@/pages/AuthPage.vue'
-import CareerTestPage from '@/pages/CareerTestPage.vue'
 import HomePage from '@/pages/HomePage.vue'
 import VacanciesPage from '@/pages/VacanciesPage.vue'
 
@@ -26,7 +25,7 @@ const router = createRouter({
     {
       path: '/test',
       name: 'career-test',
-      component: CareerTestPage,
+      redirect: '/auth',
     },
     {
       path: '/vacancies',
@@ -78,13 +77,17 @@ async function validatePersistedSession() {
 
 router.beforeEach(async (to) => {
   if (!hasPersistedAuth()) {
+    if (to.name === 'home') {
+      return { name: 'auth' }
+    }
+
     return true
   }
 
   const isSessionValid = await validatePersistedSession()
 
-  if (!isSessionValid && to.name !== 'home') {
-    return { name: 'home' }
+  if (!isSessionValid) {
+    return { name: 'auth' }
   }
 
   return true
