@@ -1,8 +1,10 @@
-# Career Guidance Backend
+# Career AI
 
-Бэкенд сервиса профориентации для пользователей. Пользователь проходит тест, бэкенд сохраняет результат, запускает AI-анализ и возвращает персональные рекомендации с курсами (Stepik) и вакансиями (HH).
+## О проекте
 
-## Стек
+Сервис профориентации: пользователь проходит карьерный тест; бэкенд сохраняет результат, запускает AI-анализ и возвращает персональные рекомендации с курсами (Stepik) и вакансиями (HH). Веб-интерфейс — Vue 3 и Vite; API — FastAPI и PostgreSQL.
+
+## Стек (бэкенд)
 
 - **Python 3.11+**
 - **FastAPI** — async HTTP framework
@@ -13,7 +15,9 @@
 - **httpx** — async HTTP-клиент (Bothub AI, HH API, Stepik API)
 - **Uvicorn** — ASGI-сервер
 
-## Быстрый старт
+## Быстрый старт (бэкенд)
+
+Команды ниже — из каталога `backend`.
 
 ### 1. PostgreSQL через Docker
 
@@ -59,21 +63,24 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 Swagger: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-## Структура проекта
+## Frontend
 
+Нужен **Node.js** версии **20.19+** или **22.12+** (см. `engines` в `frontend/package.json`).
+
+```bash
+cd frontend
+npm install
 ```
-app/
-├── api/v1/endpoints/     # Роутеры FastAPI
-├── core/                 # Config, JWT, bcrypt
-├── db/                   # Engine, session, Base
-├── models/               # SQLAlchemy-модели
-├── repositories/         # Запросы к БД
-├── schemas/              # Pydantic-схемы
-├── services/             # Бизнес-логика
-│   ├── ai_jobs.py        # BackgroundTask pipeline
-│   ├── bothub_ai.py      # AI-клиент (OpenAI-compatible)
-│   ├── hh.py             # HeadHunter API
-│   ├── courses.py        # Stepik API
-│   └── career_test.py    # Сериализация результатов
-└── main.py               # FastAPI app + lifespan
+
+**Разработка** — dev-сервер Vite (адрес и порт смотрите в выводе команды, обычно `http://localhost:5173`):
+
+```bash
+npm run dev
+```
+
+**Просмотр production-сборки** — сначала соберите проект, затем поднимите preview:
+
+```bash
+npm run build
+npm run preview -- --host 0.0.0.0 --port 5173
 ```
