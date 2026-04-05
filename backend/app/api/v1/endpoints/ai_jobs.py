@@ -10,6 +10,7 @@ from app.db.session import get_db_session
 from app.models.ai_recommendation_job import AIJobStatusEnum, AIRecommendationJob
 from app.models.career_recommendation import CareerRecommendation
 from app.models.career_test_attempt import CareerTestAttempt
+from app.models.course_recommendation import CourseRecommendation  # noqa: F401 — triggers mapper registration
 from app.schemas.ai_job import AIJobStatusRead
 from app.schemas.career_test import CareerTestResultRead
 from app.services.career_test import CareerTestService
@@ -39,6 +40,9 @@ async def get_ai_job_result(job_id: str, db: AsyncSession = Depends(get_db_sessi
             selectinload(AIRecommendationJob.attempt)
             .selectinload(CareerTestAttempt.recommendation)
             .selectinload(CareerRecommendation.vacancies),
+            selectinload(AIRecommendationJob.attempt)
+            .selectinload(CareerTestAttempt.recommendation)
+            .selectinload(CareerRecommendation.courses),
         )
     )
     job = result.scalar_one_or_none()

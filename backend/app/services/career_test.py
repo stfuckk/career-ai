@@ -156,7 +156,10 @@ class CareerTestService:
             'about_user': raw_ai['about_user'],
             'career_fit': raw_ai['career_fit'],
             'development_recommendations': raw_ai['development_recommendations'],
-            'career_path': raw_ai.get('career_path'),
+            'career_path': self._enrich_career_path_with_courses(
+                raw_ai.get('career_path'),
+                recommendation.courses,
+            ),
             'vacancies': [
                 {
                     'hh_vacancy_id': item.hh_vacancy_id,
@@ -172,6 +175,40 @@ class CareerTestService:
                 for item in recommendation.vacancies
             ],
         }
+
+    def _enrich_career_path_with_courses(
+        self,
+        career_path_data: dict | None,
+        course_entities: list,
+    ) -> dict | None:
+        """Вшивает курсы из БД в каждый шаг career_path."""
+        if not career_path_data or not isinstance(career_path_data, dict):
+            return career_path_data
+
+        # Группируем курсы по step_index
+        courses_by_step: dict[int, list[dict]] = {}
+        for course in course_entities:
+            courses_by_step.setdefault(course.step_index, []).append({
+                'stepik_course_id': course.stepik_course_id,
+                'skill': course.skill,
+                'title': course.title,
+                'summary': course.summary,
+                'url': course.url,
+                'cover_url': course.cover_url,
+                'price': course.price,
+                'currency': course.currency,
+                'is_free': course.is_free,
+                'time_to_complete_hours': course.time_to_complete_hours,
+                'total_units': course.total_units,
+                'learners_count': course.learners_count,
+                'average_rating': course.average_rating,
+            })
+
+        steps = career_path_data.get('steps', [])
+        for i, step in enumerate(steps):
+            step['courses'] = courses_by_step.get(i, [])
+
+        return career_path_data
 
     async def _enrich_score_labels_with_ai(self, score_summary: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """

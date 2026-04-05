@@ -24,6 +24,7 @@ class UserRepository:
         sex: str,
         education_level: str,
         work_experience: int | None,
+        hobbies_text: str | None = None,
         is_first_time_completing_test: bool,
     ) -> User:
         user = User(
@@ -32,6 +33,7 @@ class UserRepository:
             sex=sex,
             education_level=education_level,
             work_experience=work_experience,
+            hobbies_text=hobbies_text,
             is_first_time_completing_test=is_first_time_completing_test,
         )
         self.db.add(user)

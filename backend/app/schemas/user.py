@@ -10,6 +10,7 @@ class UserRead(TimestampedRead):
     sex: str
     education_level: str
     work_experience: int | None
+    hobbies_text: str | None = None
     is_first_time_completing_test: bool
 
 
