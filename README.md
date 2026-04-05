@@ -85,4 +85,4 @@ npm run build
 npm run preview -- --host 0.0.0.0 --port 5173
 ```
 
-**Ссылка на Figma: ** https://www.figma.com/design/a0EbK8Ta32oxko69sUTniQ/hac?node-id=84-239&p=f
+**Ссылка на Figma:** https://www.figma.com/design/a0EbK8Ta32oxko69sUTniQ/hac?node-id=84-239&p=f
