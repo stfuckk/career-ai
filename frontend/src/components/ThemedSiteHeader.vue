@@ -1,29 +1,59 @@
 ﻿<template>
   <header class="fixed inset-x-0 top-0 z-50 shrink-0 px-4 pt-4 sm:px-8 sm:pt-6 lg:px-12">
     <div class="authlike-header mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-      <button type="button" class="authlike-header__icon" aria-label="Поиск">
+      <RouterLink to="/vacancies" class="authlike-header__icon" aria-label="Вакансии">
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="6" />
           <path d="m20 20-3.5-3.5" />
         </svg>
-      </button>
+      </RouterLink>
 
       <RouterLink to="/" class="authlike-header__brand">
         ПрофАпдейт
       </RouterLink>
 
-      <RouterLink to="/auth" class="authlike-header__icon" aria-label="Профиль">
+      <button
+        type="button"
+        class="authlike-header__icon"
+        aria-label="Профиль"
+        @click="goToAuthBlock"
+      >
         <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20 21a8 8 0 0 0-16 0" />
           <circle cx="12" cy="8" r="4" />
         </svg>
-      </RouterLink>
+      </button>
     </div>
   </header>
 </template>
 
 <script setup>
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+function scrollToAuthBlock() {
+  const authBlock = document.getElementById('auth-panel')
+
+  if (!authBlock) {
+    return
+  }
+
+  authBlock.scrollIntoView({
+    behavior: 'smooth',
+    block: 'start',
+  })
+}
+
+async function goToAuthBlock() {
+  if (route.name === 'auth') {
+    scrollToAuthBlock()
+    return
+  }
+
+  await router.push({ name: 'auth', hash: '#auth-panel' })
+}
 </script>
 
 <style scoped>

@@ -2,54 +2,46 @@
   <section class="career-test-block relative w-full overflow-hidden py-4 sm:py-6 lg:py-8">
     <div class="relative z-10 text-center">
       <h2 class="career-test-block__title">
-        Тест по определению<br class="hidden lg:block"> направления
+        Тест по определению направления
       </h2>
     </div>
 
     <div class="career-test-stage relative z-10 mt-6 sm:mt-8">
       <div class="career-test-track px-4 sm:px-8 lg:px-12">
         <div class="career-test-main relative mx-auto flex w-full items-center justify-center">
-          <div class="career-test-card-shell w-full">
+          <div
+            class="career-test-card-shell w-full"
+            :style="cardShellStyle"
+          >
             <Transition :name="transitionName" :css="!isMobileView">
               <article
-                :key="isCompletedView ? 'completed' : currentQuestion.id"
-                class="career-test-card w-full rounded-4xl px-6 py-7 sm:min-h-96 sm:px-10 sm:py-8 lg:h-100min-h-[25rem]"
+                ref="activeCardRef"
+                :key="currentQuestion.id"
+                class="career-test-card w-full rounded-4xl px-6 py-7 sm:px-10 sm:py-8"
               >
-                <template v-if="!isCompletedView">
-                  <div class="career-test-card__heading">
-                    <p class="career-test-card__meta">Вопрос {{ currentQuestionIndex + 1 }}</p>
-                    <h3 class="career-test-card__title">{{ currentQuestion.title }}:</h3>
-                  </div>
+                <div class="career-test-card__heading">
+                  <p class="career-test-card__meta">Вопрос {{ currentQuestionIndex + 1 }}</p>
+                  <h3 class="career-test-card__title">{{ currentQuestion.title }}:</h3>
+                </div>
 
-                  <div class="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
-                    <button
-                      v-for="option in currentQuestion.options"
-                      :key="option.key"
-                      type="button"
-                      class="career-test-option"
-                      :class="selectedOptionClass(currentQuestion.id, option.key)"
-                      @click="handleOptionSelect(currentQuestion.id, option.key)"
-                    >
-                      {{ capitalize(option.label) }}.
-                    </button>
-                  </div>
-                </template>
-
-                <template v-else>
-                  <div class="flex min-h-72 flex-col items-center justify-center text-center sm:min-h-80 lg:min-h-112">
-                    <p class="career-test-card__meta">Готово</p>
-                    <h3 class="career-test-card__title">Тест завершен</h3>
-                    <p class="mt-4 max-w-xl text-sm leading-6 text-white/72 sm:text-base">
-                      Мы сохранили ответы и продолжили дальнейшую логику обработки.
-                    </p>
-                  </div>
-                </template>
+                <div class="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
+                  <button
+                    v-for="option in currentQuestion.options"
+                    :key="option.key"
+                    type="button"
+                    class="career-test-option"
+                    :class="selectedOptionClass(currentQuestion.id, option.key)"
+                    @click="handleOptionSelect(currentQuestion.id, option.key)"
+                  >
+                    {{ capitalize(option.label) }}.
+                  </button>
+                </div>
               </article>
             </Transition>
           </div>
         </div>
 
-        <div v-if="!isCompletedView" class="career-test-controls">
+        <div class="career-test-controls">
           <button
             type="button"
             class="career-test-arrow career-test-arrow--left"
@@ -93,20 +85,18 @@
 
     <div
       v-if="isLoadingResults"
-      class="absolute inset-0 z-30 flex items-center justify-center bg-[#1b165f]/58 backdrop-blur-sm"
+      class="relative z-10 mx-auto mt-8 flex w-full max-w-3xl flex-col items-center justify-center px-4 text-center"
     >
-      <div class="rounded-3xl border border-white/12 bg-white/10 px-6 py-6 text-center shadow-[0_24px_70px_rgba(15,8,54,0.4)] backdrop-blur-xl">
-        <div class="mx-auto h-10 w-10 animate-spin rounded-full border-3 border-white/20 border-t-white" />
-        <p class="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-white/78">
-          Анализируем ответы
-        </p>
-      </div>
+      <div class="mx-auto h-10 w-10 animate-spin rounded-full border-3 border-white/20 border-t-white" />
+      <p class="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-white/78">
+        Анализируем ответы
+      </p>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { CAREER_TEST_COLUMNS, CAREER_TEST_QUESTIONS } from '@/constants/careerTest'
 import { submitAnonymousTest } from '@/lib/api'
@@ -121,10 +111,11 @@ const questions = CAREER_TEST_QUESTIONS
 const answers = reactive({})
 const currentQuestionIndex = ref(0)
 const isLoadingResults = ref(false)
-const isCompletedView = ref(false)
 const submitError = ref('')
 const transitionName = ref('question-slide-forward')
 const isMobileView = ref(false)
+const activeCardRef = ref(null)
+const cardShellHeight = ref(null)
 
 const currentQuestion = computed(() => questions[currentQuestionIndex.value])
 const canGoBack = computed(() => currentQuestionIndex.value > 0 && !isLoadingResults.value)
@@ -149,20 +140,84 @@ const scoredColumns = computed(() => {
 })
 
 let mediaQuery = null
+let resizeObserver = null
+
+const cardShellStyle = computed(() => (
+  cardShellHeight.value
+    ? { height: cardShellHeight.value }
+    : {}
+))
+
+function syncCardShellHeight() {
+  if (isMobileView.value) {
+    cardShellHeight.value = null
+    return
+  }
+
+  const cardElement = activeCardRef.value
+
+  if (!cardElement) {
+    return
+  }
+
+  const measuredHeight = Math.max(cardElement.scrollHeight, cardElement.offsetHeight, 400)
+  cardShellHeight.value = `${measuredHeight}px`
+}
 
 function syncMobileView() {
   isMobileView.value = window.matchMedia('(max-width: 767px)').matches
+
+  if (isMobileView.value) {
+    cardShellHeight.value = null
+    return
+  }
+
+  window.requestAnimationFrame(() => {
+    syncCardShellHeight()
+  })
 }
 
 onMounted(() => {
   mediaQuery = window.matchMedia('(max-width: 767px)')
   syncMobileView()
   mediaQuery.addEventListener('change', syncMobileView)
+
+  resizeObserver = new ResizeObserver(() => {
+    syncCardShellHeight()
+  })
+
+  watch(
+    activeCardRef,
+    (element, previousElement) => {
+      if (previousElement) {
+        resizeObserver?.unobserve(previousElement)
+      }
+
+      if (element) {
+        resizeObserver?.observe(element)
+        syncCardShellHeight()
+      }
+    },
+    { flush: 'post' },
+  )
 })
 
 onBeforeUnmount(() => {
   mediaQuery?.removeEventListener('change', syncMobileView)
+  resizeObserver?.disconnect()
 })
+
+watch(
+  currentQuestionIndex,
+  async () => {
+    await nextTick()
+    syncCardShellHeight()
+    window.requestAnimationFrame(() => {
+      syncCardShellHeight()
+    })
+  },
+  { flush: 'post' },
+)
 
 function persistScores(scoreValues) {
   writeStorageJson(STORAGE_KEYS.testScores, scoreValues)
@@ -171,6 +226,12 @@ function persistScores(scoreValues) {
 function persistPreview(preview) {
   writeStorageJson(STORAGE_KEYS.testPreview, preview)
   writeStorageValue(STORAGE_KEYS.attemptToken, preview.attempt_token)
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('career-ai:test-preview-updated', {
+      detail: preview,
+    }))
+  }
 }
 
 async function submitResults() {
@@ -215,7 +276,6 @@ async function goForward() {
 
     try {
       await submitResults()
-      isCompletedView.value = true
     } catch (error) {
       submitError.value = error?.message ?? 'Не удалось получить результат теста.'
     } finally {
@@ -275,9 +335,11 @@ async function handleOptionSelect(questionId, optionKey) {
 }
 
 .career-test-card {
+  width: 100%;
+  min-height: 25rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: linear-gradient(180deg, rgba(183, 146, 255, 0.38), rgba(141, 115, 210, 0.3));
-  box-shadow: 0 28px 40px rgba(12, 8, 50, 0.35);
+  box-shadow: 0 7px 20px rgba(12, 8, 50, 0.35);
   backdrop-filter: blur(24px);
 }
 
@@ -415,7 +477,7 @@ async function handleOptionSelect(questionId, optionKey) {
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .career-test-controls {
     position: absolute;
     top: 0;
@@ -443,6 +505,22 @@ async function handleOptionSelect(questionId, optionKey) {
   }
 }
 
+@media (min-width: 768px) and (max-width: 1279px) {
+  .career-test-controls {
+    display: flex;
+    justify-content: center;
+    gap: 0.85rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    pointer-events: auto;
+  }
+
+  .career-test-controls .career-test-arrow {
+    position: static;
+    transform: none;
+  }
+}
+
 @media (max-width: 767px) {
   .career-test-block__title {
     font-size: 2rem;
@@ -465,6 +543,7 @@ async function handleOptionSelect(questionId, optionKey) {
 
   .career-test-card-shell {
     min-height: 22rem;
+    height: auto;
     overflow: visible;
     isolation: auto;
   }

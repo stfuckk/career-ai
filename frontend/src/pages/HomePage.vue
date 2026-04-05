@@ -1,6 +1,6 @@
 ﻿<template>
   <div
-    class="flex flex-col bg-(--page-bg) transition-colors duration-300"
+    class="homepage-page flex flex-col"
     :class="isAuthenticated ? 'min-h-screen' : 'h-screen overflow-hidden'"
   >
     <SiteHeader />
@@ -14,8 +14,8 @@
         @pointerleave="resetPointerOffset"
       >
         <div
+          v-if="!isAuthenticated"
           class="homepage-hero__background"
-          :class="{ 'homepage-hero__background--dark': isDark }"
           :style="backgroundStyle"
           aria-hidden="true"
         />
@@ -23,27 +23,24 @@
         <div class="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 md:px-10 lg:px-10">
           <template v-if="isAuthenticated">
             <div class="mt-4">
-              <h1 class="text-4xl font-black uppercase leading-[1.02] tracking-[-0.03em] text-(--text-hero) sm:text-6xl lg:text-7xl">
+              <h1 class="homepage-title text-4xl font-black uppercase leading-[1.02] tracking-[-0.03em] sm:text-6xl lg:text-7xl">
                 Ваши данные
               </h1>
-              <p class="mt-5 text-base leading-7 text-(--text-main)/80 sm:max-w-4xl sm:text-lg sm:leading-8">
-                {{ headerSummary }}
-              </p>
-              <p class="mt-5 text-base uppercase leading-snug tracking-[0.03em] text-(--text-body) sm:text-2xl">
-                Самая подходящая специальность - {{ bestSpecialty }}
+              <p class="homepage-subtitle mt-5 text-base font-black uppercase leading-snug tracking-[0.03em] sm:text-2xl">
+                Самая подходящая специальность: {{ bestSpecialty }}
               </p>
             </div>
 
             <div
               v-if="isResultsLoading"
-              class="mt-12 flex min-h-90 items-center justify-center rounded-4xl bg-(--surface) p-8 text-center shadow-(--shadow-card)"
+              class="homepage-loading-panel mt-14 flex min-h-64 items-center justify-center p-8 text-center"
             >
               <div>
-                <div class="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-(--button-secondary)/20 border-t-(--button-secondary)" />
-                <p class="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-(--text-accent-soft)">
+                <div class="homepage-spinner mx-auto h-12 w-12 animate-spin rounded-full border-4" />
+                <p class="homepage-loading-kicker mt-5 text-xs font-semibold uppercase tracking-[0.24em]">
                   Формируем персональный результат
                 </p>
-                <p class="mt-3 text-sm text-(--text-main)/70">
+                <p class="homepage-loading-text mt-3 text-sm">
                   {{ loadingMessage }}
                 </p>
               </div>
@@ -51,221 +48,198 @@
 
             <div
               v-else-if="jobError"
-              class="mt-12 rounded-4xl border border-rose-400/35 bg-rose-500/8 p-6 text-rose-700 shadow-(--shadow-card) dark:text-rose-200"
+              class="homepage-error-panel mt-12 rounded-3xl px-6 py-5"
             >
               {{ jobError }}
             </div>
 
             <template v-else>
-              <div class="mt-12 grid items-start gap-5 lg:grid-cols-[0.72fr_1.8fr] lg:gap-8">
-                <article class="self-start rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
-                  <h2 class="text-lg font-black uppercase tracking-[0.28em] text-(--text-hero) sm:text-2xl">
-                    О вас
+              <section class="mt-14">
+                <div class="max-w-3xl">
+                  <h2 class="homepage-section-title text-2xl font-black uppercase leading-[1.04] sm:text-3xl">
+                    Ваши качества
                   </h2>
-                  <ul class="mt-6 space-y-3 text-sm leading-6 text-(--text-main)/72 sm:text-lg sm:leading-8">
-                    <li>Возраст: {{ aboutUser.age }}</li>
-                    <li>Опыт: {{ aboutUser.experience }}</li>
-                    <li>Образование: {{ aboutUser.education }}</li>
-                  </ul>
-
-                  <div class="mt-6">
-                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-(--text-accent-soft)">
-                      Сильные стороны
-                    </p>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                      <span
-                        v-for="strength in aboutUser.strengths"
-                        :key="strength"
-                        class="rounded-full bg-(--surface-soft) px-3 py-2 text-xs font-semibold text-(--text-main) sm:text-sm"
-                      >
-                        {{ strength }}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-
-                <article class="rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
-                  <h2 class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl">
-                    Проф. склонности, подходящие направления в работе
-                  </h2>
-                  <div class="mt-6 max-w-5xl space-y-6 text-sm leading-6 text-(--text-main)/75 sm:text-base sm:leading-7">
-                    <p>{{ careerFit.summary }}</p>
-
-                    <div>
-                      <p class="font-semibold text-(--text-hero)">Ваши шкалы</p>
-                      <div class="mt-4 space-y-4">
-                        <div
-                          v-for="score in displayScores"
-                          :key="score.key"
-                          class="rounded-3xl border p-4 transition"
-                          :class="dominantCategorySet.has(score.key) ? 'border-(--button-secondary)/45 bg-(--button-secondary)/7' : 'border-(--border-soft) bg-(--surface-soft-2)'"
-                        >
-                          <div class="flex items-center justify-between gap-4">
-                            <div class="min-w-0">
-                              <p class="font-semibold text-(--text-hero)">{{ score.title }}</p>
-                              <p class="mt-1 text-sm leading-6 text-(--text-main)/72">{{ score.label }}</p>
-                            </div>
-                            <div class="shrink-0 text-sm font-bold text-(--text-hero)">
-                              {{ score.score }}/12
-                            </div>
-                          </div>
-                          <div class="mt-3 h-2.5 rounded-full bg-(--surface-soft)">
-                            <div
-                              class="h-full rounded-full transition-[width]"
-                              :class="dominantCategorySet.has(score.key) ? 'bg-(--button-secondary)' : 'bg-(--text-muted)/45'"
-                              :style="{ width: `${(score.score / 12) * 100}%` }"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <p class="font-semibold text-(--text-hero)">Профессии подходящие для вас:</p>
-                      <div class="mt-3 flex flex-wrap gap-2">
-                        <span
-                          v-for="profession in careerFit.professions"
-                          :key="profession"
-                          class="rounded-full bg-(--surface-soft) px-3 py-2 text-sm font-medium text-(--text-main)"
-                        >
-                          {{ profession }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              </div>
-
-              <article class="mt-8 rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8">
-                <h2 class="max-w-5xl text-lg font-black uppercase leading-[1.05] tracking-[0.28em] text-(--text-hero) sm:text-2xl">
-                  Рекомендации как улучшить навыки, повысить квалификацию
-                </h2>
-                <div class="mt-6 max-w-5xl space-y-5 text-sm leading-6 text-(--text-main)/75 sm:text-base sm:leading-7">
-                  <div>
-                    <p class="mt-2">{{ developmentRecommendations.summary }}</p>
-                  </div>
-                  <div>
-                    <p class="font-semibold text-(--text-hero)">Как можно повысить квалификацию?</p>
-                    <ol class="mt-3 space-y-2">
-                      <li v-for="(step, index) in developmentRecommendations.steps" :key="step">
-                        {{ index + 1 }}. {{ step }}
-                      </li>
-                    </ol>
-                  </div>
-                </div>
-              </article>
-
-              <article
-                v-if="careerPath"
-                class="career-path-card mt-8 rounded-4xl bg-(--surface) p-6 shadow-(--shadow-card) sm:p-8 lg:p-10"
-              >
-                <div class="text-center">
-                  <p class="text-sm font-black uppercase tracking-[0.42em] text-(--text-hero) sm:text-base">
-                    Индивидуальный путь развития
+                  <p class="homepage-section-text mt-4 max-w-3xl text-sm leading-6 sm:text-lg sm:leading-8">
+                    {{ qualitiesText }}
                   </p>
                 </div>
 
-                <div class="mt-6 lg:mt-7">
-                  <div class="career-path-grid">
-                    <div class="career-path-side-note career-path-side-note--current">
-                      <span class="career-path-side-note__label">Сейчас вы здесь</span>
-                    </div>
+                <div class="mx-auto mt-12 max-w-4xl text-center">
+                  <h2 class="homepage-section-title text-2xl font-black uppercase leading-[1.04] sm:text-3xl">
+                    Профессиональные склонности
+                  </h2>
+                  <p class="homepage-section-text mt-4 text-sm leading-6 sm:text-lg sm:leading-8">
+                    {{ careerFit.summary }}
+                  </p>
+                </div>
 
-                    <div class="career-path-side-note career-path-side-note--future">
-                      <span class="career-path-side-note__label">Где можете оказаться</span>
-                    </div>
-
-                    <div class="career-path-line" aria-hidden="true" />
-                    <svg class="career-path-arrow-overlay career-path-arrow-overlay--current" viewBox="0 0 300 120" aria-hidden="true">
-                      <path d="M286 22 C252 54, 214 68, 170 70 C122 72, 80 56, 18 56" />
-                      <path d="M30 46 L18 56 L30 66" />
-                    </svg>
-
-                    <svg class="career-path-arrow-overlay career-path-arrow-overlay--future" viewBox="0 0 300 120" aria-hidden="true">
-                      <path d="M14 98 C48 66, 86 52, 130 50 C178 48, 220 64, 282 64" />
-                      <path d="M270 54 L282 64 L270 74" />
-                    </svg>
-
-                    <div class="career-path-node career-path-node--current">
-                      <div class="career-path-node__marker" aria-hidden="true" />
-                      <div class="career-path-node__body">
-                        <p class="career-path-node__title">
-                          {{ careerPath.currentPosition }}
-                        </p>
-                      </div>
-                    </div>
-
-                    <template v-for="(step, index) in careerPath.steps" :key="`${step.title}-${index}`">
-                      <div class="career-path-step">
-                        <div class="career-path-step__aside career-path-step__aside--skills">
-                          <p class="career-path-step__label">Курсы на повышение навыков</p>
-                          <div class="career-path-step__chips">
-                            <span
-                              v-for="skill in step.skillsToLearn"
-                              :key="skill"
-                              class="career-path-chip"
-                            >
-                              {{ skill }}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div class="career-path-node">
-                          <div class="career-path-node__marker" aria-hidden="true" />
-                          <div class="career-path-node__body">
-                            <p class="career-path-node__title">{{ step.title }}</p>
-                          </div>
-                        </div>
-
-                        <div class="career-path-step__aside career-path-step__aside--vacancies">
-                          <p class="career-path-step__label">Вакансии</p>
-                          <p class="career-path-step__meta">
-                            Опыт: {{ step.experienceRequired }}
-                          </p>
-                          <p class="career-path-step__query">
-                            Запрос: {{ step.hhSearchQuery }}
-                          </p>
-                        </div>
-                      </div>
-                    </template>
+                <div class="mt-14 text-center">
+                  <h2 class="homepage-section-title text-2xl font-black uppercase leading-[1.04] sm:text-3xl">
+                    Рекомендуемые профессии
+                  </h2>
+                  <div class="mt-6 flex flex-wrap justify-center gap-4">
+                    <span
+                      v-for="profession in careerFit.professions"
+                      :key="profession"
+                      class="homepage-profession-chip rounded-3xl px-6 py-4 text-base font-medium sm:min-w-52 sm:text-2xl"
+                    >
+                      {{ profession }}
+                    </span>
                   </div>
                 </div>
-              </article>
 
-              <div class="mt-10 rounded-4xl px-6 py-8 text-center sm:px-10 sm:py-10">
-                <p class="text-lg uppercase leading-snug tracking-[0.03em] text-(--text-hero) sm:text-3xl">
-                  Хотите посмотреть
-                  <RouterLink
-                    to="/vacancies"
-                    class="underline decoration-current decoration-2 underline-offset-4 transition hover:opacity-75"
-                    style="text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px;"
-                  >
-                    вакансии
-                  </RouterLink>,
-                  которые подойдут вам прямо сейчас?
-                </p>
-              </div>
+                <div class="mt-16 max-w-4xl">
+                  <h2 class="homepage-section-title text-2xl font-black uppercase leading-[1.04] sm:text-3xl">
+                    Рекомендации как улучшить навыки, повысить квалификацию
+                  </h2>
+                  <div class="homepage-section-text mt-6 space-y-5 text-sm leading-6 sm:text-lg sm:leading-8">
+                    <p>{{ developmentRecommendations.summary }}</p>
+                    <p v-for="step in developmentRecommendations.steps" :key="step">
+                      {{ step }}
+                    </p>
+                  </div>
+                </div>
 
-              <div class="mt-4 pb-4 sm:pb-6">
-                <button
-                  type="button"
-                  class="flex min-h-16 w-full items-center justify-center rounded-full bg-(--button-secondary) px-8 text-center text-base font-bold uppercase tracking-[0.08em] text-(--button-text) shadow-[0_16px_32px_rgba(90,102,255,0.28)] transition hover:-translate-y-0.5 hover:bg-(--button-secondary-hover) sm:min-h-20 sm:text-2xl"
-                  @click="restartTest"
+                <section
+                  v-if="personalPath"
+                  class="homepage-path mt-20"
+                  aria-labelledby="personal-path-title"
                 >
-                  Пройти тест заново
-                </button>
-              </div>
+                  <div class="homepage-path__header">
+                    <h2
+                      id="personal-path-title"
+                      class="homepage-section-title homepage-path__title text-3xl font-black uppercase leading-[1.02] sm:text-5xl"
+                    >
+                      Индивидуальный путь
+                    </h2>
+                  </div>
+
+                  <div
+                    class="homepage-path__canvas"
+                    :style="pathLayout ? { minHeight: `${pathLayout.height}px` } : undefined"
+                  >
+                    <svg
+                      v-if="pathLayout"
+                      class="homepage-path__diagram"
+                      :viewBox="`0 0 1000 ${pathLayout.height}`"
+                      aria-hidden="true"
+                      preserveAspectRatio="none"
+                    >
+                      <defs>
+                        <marker
+                          id="homepage-path-arrowhead"
+                          markerWidth="8"
+                          markerHeight="8"
+                          refX="6"
+                          refY="4"
+                          orient="auto"
+                        >
+                          <path
+                            d="M0 0L8 4L0 8"
+                            fill="none"
+                            stroke="#ff2c63"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.6"
+                          />
+                        </marker>
+                      </defs>
+                      <path
+                        v-for="(path, index) in pathLayout.connectorPaths"
+                        :key="`connector-${index}`"
+                        class="homepage-path__diagram-line"
+                        :d="path"
+                      />
+                      <path
+                        v-if="pathLayout.bottomAccentPath"
+                        class="homepage-path__diagram-accent"
+                        :d="pathLayout.bottomAccentPath"
+                      />
+                    </svg>
+
+                    <div
+                      class="homepage-path__label homepage-path__label--current"
+                      :style="pathLayout?.currentLabelStyle"
+                    >
+                      Сейчас вы можете быть здесь
+                    </div>
+                    <div
+                      class="homepage-path__label homepage-path__label--future"
+                      :style="pathLayout?.futureLabelStyle"
+                    >
+                      Куда можете прийти
+                    </div>
+
+                    <article
+                      v-for="(step, index) in pathLayout?.nodes ?? []"
+                      :key="`${step.title}-${index}`"
+                      class="homepage-path__node"
+                      :class="[
+                        step.side === 'left' ? 'homepage-path__node--left' : 'homepage-path__node--right',
+                        step.isCurrent ? 'homepage-path__node--current' : '',
+                        step.courses?.length ? 'homepage-path__node--interactive' : '',
+                      ]"
+                      :style="{ top: `${step.top}px` }"
+                      :role="step.courses?.length ? 'button' : undefined"
+                      :tabindex="step.courses?.length ? 0 : undefined"
+                      @click="openPathCourses(step)"
+                      @keydown.enter.prevent="openPathCourses(step)"
+                      @keydown.space.prevent="openPathCourses(step)"
+                    >
+                      <div
+                        v-if="step.isCurrent"
+                        class="homepage-path__mobile-label homepage-path__mobile-label--current"
+                      >
+                        Сейчас вы можете быть здесь
+                      </div>
+                      <div
+                        v-else-if="index === (pathLayout?.nodes?.length ?? 0) - 1"
+                        class="homepage-path__mobile-label homepage-path__mobile-label--future"
+                      >
+                        Куда можете прийти
+                      </div>
+                      <span class="homepage-path__dot" aria-hidden="true" />
+                      <h3 class="homepage-path__node-title">
+                        {{ step.title }}
+                      </h3>
+                      <p
+                        v-if="step.courses?.length"
+                        class="homepage-path__hint"
+                      >
+                        Нажмите, чтобы посмотреть курсы
+                      </p>
+                      <div class="homepage-path__chips">
+                        <span
+                          v-for="badge in step.badges"
+                          :key="badge"
+                          class="homepage-path__chip"
+                        >
+                          {{ badge }}
+                        </span>
+                      </div>
+                    </article>
+                  </div>
+                </section>
+
+                <p class="homepage-vacancies-link mt-18 text-lg sm:text-2xl">
+                  Хотите посмотреть список
+                  <RouterLink to="/vacancies" class="homepage-vacancies-link__anchor">
+                    вакансий
+                  </RouterLink>
+                  ?
+                </p>
+              </section>
             </template>
           </template>
 
           <template v-else>
             <h1
-              class="mt-8 text-4xl font-black uppercase leading-[1.06] tracking-[0.02em] text-(--text-hero) sm:mt-12 sm:text-7xl lg:text-7xl"
+              class="homepage-title mt-8 text-4xl font-black uppercase leading-[1.06] tracking-[0.02em] sm:mt-12 sm:text-7xl lg:text-7xl"
             >
               Тест по определению направления
             </h1>
             <p
-              class="mt-6 text-base uppercase leading-snug tracking-[-0.02em] text-(--text-body) sm:mt-8 sm:text-2xl"
+              class="homepage-subtitle mt-6 text-base uppercase leading-snug tracking-[-0.02em] sm:mt-8 sm:text-2xl"
             >
               Прохождение этого теста сэкономит вам время и поможет подобрать вакансии специально для
               вас
@@ -274,8 +248,7 @@
             <div class="mt-12 flex justify-center sm:mt-16">
               <RouterLink
                 to="/test"
-                class="inline-flex min-h-14 items-center justify-center rounded-full bg-(--button-primary) px-8 text-center text-base uppercase tracking-[0.08em] text-(--button-text) shadow-(--shadow-button) transition hover:-translate-y-0.5 hover:bg-(--button-primary-hover) sm:min-h-16 sm:min-w-100 sm:px-16 sm:text-2xl"
-                style="color: var(--button-text)"
+                class="homepage-cta inline-flex min-h-14 items-center justify-center rounded-full px-8 text-center text-base uppercase tracking-[0.08em] transition hover:-translate-y-0.5 sm:min-h-16 sm:min-w-100 sm:px-16 sm:text-2xl"
               >
                 Пройти тест
               </RouterLink>
@@ -285,19 +258,102 @@
       </section>
     </main>
 
+    <div
+      v-if="selectedPathStep"
+      class="homepage-modal"
+      @click.self="closePathCourses"
+    >
+      <div
+        class="homepage-modal__panel"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="selectedPathCoursesHeading"
+      >
+        <button
+          type="button"
+          class="homepage-modal__close"
+          aria-label="Закрыть окно с курсами"
+          @click="closePathCourses"
+        >
+          ×
+        </button>
+
+        <div class="homepage-modal__header">
+          <p class="homepage-modal__kicker">Курсы для следующего шага</p>
+          <h3 class="homepage-modal__title">
+            {{ selectedPathCoursesHeading }}
+          </h3>
+        </div>
+
+        <div
+          class="homepage-modal__rail"
+          @wheel.stop.prevent="handleCoursesWheel"
+        >
+          <article
+            v-for="course in selectedPathStep.courses"
+            :key="course.id"
+            class="homepage-course-card"
+          >
+            <div
+              v-if="course.coverUrl"
+              class="homepage-course-card__cover"
+            >
+              <img
+                :src="course.coverUrl"
+                :alt="course.title"
+                class="homepage-course-card__cover-image"
+              >
+            </div>
+
+            <div class="homepage-course-card__body">
+              <div class="homepage-course-card__chips">
+                <span
+                  v-if="course.skill"
+                  class="homepage-course-card__chip"
+                >
+                  {{ course.skill }}
+                </span>
+                <span class="homepage-course-card__chip">
+                  {{ course.isFree ? 'Бесплатно' : formatCoursePrice(course) }}
+                </span>
+              </div>
+
+              <component
+                :is="course.url ? 'a' : 'h4'"
+                :href="course.url || undefined"
+                :target="course.url ? '_blank' : undefined"
+                :rel="course.url ? 'noreferrer' : undefined"
+                class="homepage-course-card__title"
+              >
+                {{ course.title }}
+              </component>
+
+              <p class="homepage-course-card__summary">
+                {{ course.summary }}
+              </p>
+
+              <div class="homepage-course-card__meta">
+                <span v-if="course.learnersCount != null">
+                  {{ course.learnersCount }} учеников
+                </span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+
     <SiteFooter />
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 import backgroundObjectDark from '@/assets/background-object-dark.png'
-import backgroundObjectLight from '@/assets/background-object-light.png'
 import SiteFooter from '@/components/SiteFooter.vue'
 import SiteHeader from '@/components/ThemedSiteHeader.vue'
-import { useTheme } from '@/composables/useTheme'
 import { readAiJobResult, readAiJobStatus, readLatestTestResult } from '@/lib/api'
 import {
   STORAGE_KEYS,
@@ -308,8 +364,16 @@ import {
   writeStorageValue,
 } from '@/lib/storage'
 
-const { isDark } = useTheme()
 const router = useRouter()
+
+const DOMINANT_CATEGORY_LABELS = {
+  people: 'Работа с людьми',
+  research: 'Исследовательская деятельность',
+  practical: 'Практическая деятельность',
+  aesthetic: 'Эстетическая деятельность',
+  extreme: 'Экстремальная деятельность',
+  economic: 'Планово-экономическая деятельность',
+}
 
 const heroSectionRef = ref(null)
 const isInteractive = ref(false)
@@ -322,6 +386,7 @@ const profileDraft = ref(readStorageJson(STORAGE_KEYS.profileDraft, {}))
 const authUser = ref(readStorageJson(STORAGE_KEYS.authUser))
 const authJob = ref(readStorageJson(STORAGE_KEYS.authJob))
 const jobError = ref('')
+const selectedPathStep = ref(null)
 
 let animationFrameId = 0
 let mediaQueryList = null
@@ -332,7 +397,7 @@ let targetOffsetX = 0
 let targetOffsetY = 0
 
 const backgroundStyle = computed(() => ({
-  '--homepage-bg-image': `url(${isDark.value ? backgroundObjectDark : backgroundObjectLight})`,
+  '--homepage-bg-image': `url(${backgroundObjectDark})`,
   '--homepage-bg-offset-x': `${pointerOffset.value.x}px`,
   '--homepage-bg-offset-y': `${pointerOffset.value.y}px`,
 }))
@@ -347,7 +412,8 @@ const headerSummary = computed(
 const bestSpecialty = computed(
   () =>
     fullResult.value?.best_specialty ??
-    previewResult.value?.dominant_categories?.[0] ??
+    getDominantCategoryLabel(fullResult.value?.dominant_categories?.[0]) ??
+    getDominantCategoryLabel(previewResult.value?.dominant_categories?.[0]) ??
     'результат теста',
 )
 
@@ -363,6 +429,18 @@ const aboutUser = computed(() => ({
     fullResult.value?.about_user?.strengths ??
     (profileDraft.value?.hobbiesText ? profileDraft.value.hobbiesText.split(',').map((item) => item.trim()).filter(Boolean) : ['Результат ещё формируется']),
 }))
+
+const qualitiesText = computed(() => {
+  const strengths = Array.isArray(fullResult.value?.about_user?.strengths)
+    ? fullResult.value.about_user.strengths.filter(Boolean)
+    : []
+
+  if (strengths.length) {
+    return strengths.join('. ') + '.'
+  }
+
+  return headerSummary.value
+})
 
 const displayScores = computed(() => fullResult.value?.scores ?? previewResult.value?.scores ?? [])
 const dominantCategorySet = computed(
@@ -404,7 +482,138 @@ const careerPath = computed(() => {
       skillsToLearn: Array.isArray(step.skills_to_learn) ? step.skills_to_learn.filter(Boolean) : [],
       experienceRequired: step.experience_required ?? 'не указан',
       hhSearchQuery: step.hh_search_query ?? 'не указан',
+      courses: normalizeCourses(step.courses),
     })),
+  }
+})
+
+const personalPath = computed(() => {
+  if (careerPath.value) {
+    return {
+      summary: careerFit.value.summary,
+      current: {
+        title: careerPath.value.currentPosition,
+        badges: buildFallbackPathBadges(aboutUser.value.strengths).slice(0, 1),
+      },
+      future: careerPath.value.steps.slice(0, 3).map((step) => ({
+        title: step.title,
+        experienceRequired: step.experienceRequired,
+        badges: buildPathBadges(step, 2),
+        courses: step.courses,
+      })),
+    }
+  }
+
+  const professions = careerFit.value.professions.filter(Boolean)
+
+  if (!professions.length) {
+    return null
+  }
+
+  return {
+    summary: careerFit.value.summary,
+    current: {
+      title: bestSpecialty.value,
+      badges: buildFallbackPathBadges([
+        aboutUser.value.experience !== 'не указано' ? `Опыт: ${aboutUser.value.experience}` : null,
+      ]),
+    },
+    future: professions.slice(0, 3).map((profession, index) => ({
+      title: profession,
+      badges: buildFallbackPathBadges([
+        index === 0 ? careerFit.value.title : null,
+        index === 1 ? careerFit.value.summary : null,
+        index === 2 ? developmentRecommendations.value.steps[0] : null,
+      ]),
+      courses: [],
+    })),
+  }
+})
+
+const userExperienceMonths = computed(() => {
+  const rawMonths = profileDraft.value?.workExperienceMonths ?? authUser.value?.work_experience
+
+  if (rawMonths != null && rawMonths !== '') {
+    const numericMonths = Number(rawMonths)
+
+    if (Number.isFinite(numericMonths) && numericMonths >= 0) {
+      return numericMonths
+    }
+  }
+
+  return parseUserExperienceMonths(aboutUser.value.experience)
+})
+
+const pathLayout = computed(() => {
+  if (!personalPath.value) {
+    return null
+  }
+
+  const nodes = [
+    {
+      ...personalPath.value.current,
+      isCurrent: true,
+    },
+    ...personalPath.value.future.map((step) => ({
+      ...step,
+      isCurrent: false,
+    })),
+  ]
+
+  const startY = 120
+  const verticalGap = 220
+  const leftDotX = 300
+  const rightDotX = 700
+
+  const layoutNodes = nodes.map((node, index) => {
+    const side = index % 2 === 0 ? 'left' : 'right'
+    const top = startY + index * verticalGap
+
+    return {
+        ...node,
+        side,
+        top,
+        dotX: side === 'left' ? leftDotX : rightDotX,
+        dotY: top + 8,
+      }
+    })
+
+  const currentNodeIndex = findCurrentNodeIndex(layoutNodes, userExperienceMonths.value)
+  const currentNode = layoutNodes[currentNodeIndex] ?? layoutNodes[0]
+
+  const connectorPaths = layoutNodes.slice(1).map((node, index) => {
+    const prev = layoutNodes[index]
+    const horizontalPull = prev.side === 'left' ? 180 : -180
+
+    return [
+      `M ${prev.dotX} ${prev.dotY}`,
+      `C ${prev.dotX + horizontalPull} ${prev.dotY + 30},`,
+      `${node.dotX - horizontalPull} ${node.dotY - 30},`,
+      `${node.dotX} ${node.dotY}`,
+    ].join(' ')
+  })
+
+  const firstFutureNode = layoutNodes[1]
+  const lastNode = layoutNodes[layoutNodes.length - 1]
+  const futureLabelTop = Math.max(lastNode.top + 92, layoutNodes[0].top + 150)
+  const futureLabelStyle = lastNode.side === 'left'
+    ? { top: `${futureLabelTop}px`, left: '58%', textAlign: 'left' }
+    : { top: `${futureLabelTop}px`, left: '6%', textAlign: 'left' }
+  const currentLabelStyle = currentNode.side === 'left'
+    ? { top: `${Math.max(currentNode.top - 74, 8)}px`, left: '2.2rem' }
+    : { top: `${Math.max(currentNode.top - 74, 8)}px`, right: '2.2rem', left: 'auto', textAlign: 'right' }
+
+  return {
+    nodes: layoutNodes,
+    connectorPaths,
+    height: layoutNodes[layoutNodes.length - 1].top + 220,
+    currentLabelStyle,
+    futureLabelStyle,
+    bottomAccentPath: layoutNodes.length > 2
+      ? lastNode.side === 'left'
+        ? `M 640 ${futureLabelTop + 92} C 540 ${futureLabelTop + 100}, ${lastNode.dotX + 140} ${lastNode.dotY + 24}, ${lastNode.dotX + 18} ${lastNode.dotY + 2}`
+        : `M 180 ${futureLabelTop + 92} C 80 ${futureLabelTop + 100}, ${lastNode.dotX - 140} ${lastNode.dotY + 24}, ${lastNode.dotX - 18} ${lastNode.dotY + 2}`
+      : null,
   }
 })
 
@@ -413,11 +622,193 @@ const loadingMessage = computed(() => {
   const status = authJob.value?.jobStatus
 
   if (status === 'processing') {
-    return 'Нейросеть сейчас подготавливает персональные рекомендации.'
+    return `Нейросеть сейчас подготавливает персональные рекомендации${bestSpecialty.value !== 'результат теста' ? ` по направлению «${bestSpecialty.value}»` : ''}.`
   }
 
   return 'Собираем итог по результатам теста и данным профиля.'
 })
+
+function getDominantCategoryLabel(value) {
+  if (!value) {
+    return null
+  }
+
+  const normalizedValue = String(value).trim().toLowerCase()
+
+  return DOMINANT_CATEGORY_LABELS[normalizedValue] ?? value
+}
+
+function buildPathBadges(step, limit = 2) {
+  const badges = []
+
+  if (step.experienceRequired && step.experienceRequired !== 'не указан') {
+    badges.push(`Опыт: ${step.experienceRequired}`)
+  }
+
+  if (Array.isArray(step.skillsToLearn)) {
+    badges.push(...step.skillsToLearn.filter(Boolean))
+  }
+
+  return badges.slice(0, limit)
+}
+
+function buildFallbackPathBadges(values) {
+  return values
+    .filter(Boolean)
+    .map((value) => String(value).trim())
+    .filter(Boolean)
+    .slice(0, 2)
+}
+
+function normalizeCourses(value) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .map((course) => ({
+      id: course.stepik_course_id ?? course.url ?? course.title,
+      title: course.title ?? 'Курс',
+      summary: course.summary ?? 'Описание курса появится позже.',
+      url: course.url ?? null,
+      coverUrl: course.cover_url ?? null,
+      skill: course.skill ?? null,
+      isFree: course.is_free === true,
+      price: course.price ?? null,
+      currency: course.currency ?? null,
+      durationHours: course.time_to_complete_hours ?? null,
+      learnersCount: course.learners_count ?? null,
+    }))
+    .filter((course) => course.id && course.title)
+}
+
+function openPathCourses(step) {
+  if (!step?.courses?.length) {
+    return
+  }
+
+  selectedPathStep.value = step
+}
+
+function closePathCourses() {
+  selectedPathStep.value = null
+}
+
+function handleCoursesWheel(event) {
+  const rail = event.currentTarget
+
+  if (!rail) {
+    return
+  }
+
+  const horizontalDelta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+    ? event.deltaX
+    : event.deltaY
+
+  rail.scrollBy({
+    left: horizontalDelta,
+    behavior: 'auto',
+  })
+}
+
+function handleEscapeKey(event) {
+  if (event.key === 'Escape' && selectedPathStep.value) {
+    closePathCourses()
+  }
+}
+
+function parseUserExperienceMonths(value) {
+  if (!value) {
+    return null
+  }
+
+  const normalizedValue = String(value).toLowerCase()
+
+  if (normalizedValue.includes('без опыта')) {
+    return 0
+  }
+
+  const yearMatch = normalizedValue.match(/(\d+)\s*(?:г\.|год|года|лет)/)
+  const monthMatch = normalizedValue.match(/(\d+)\s*(?:мес\.|месяц|месяца|месяцев)/)
+
+  const years = yearMatch ? Number(yearMatch[1]) : 0
+  const months = monthMatch ? Number(monthMatch[1]) : 0
+  const totalMonths = years * 12 + months
+
+  return Number.isFinite(totalMonths) ? totalMonths : null
+}
+
+function parseExperienceRequirement(value) {
+  if (!value) {
+    return null
+  }
+
+  const normalizedValue = String(value).toLowerCase().replace(/[–—]/g, '-')
+
+  if (normalizedValue.includes('без опыта')) {
+    return { minMonths: 0, maxMonths: 0 }
+  }
+
+  const rangeMatch = normalizedValue.match(/(\d+)\s*-\s*(\d+)/)
+
+  if (rangeMatch) {
+    return {
+      minMonths: Number(rangeMatch[1]) * 12,
+      maxMonths: Number(rangeMatch[2]) * 12,
+    }
+  }
+
+  const fromMatch = normalizedValue.match(/от\s*(\d+)/)
+
+  if (fromMatch) {
+    return {
+      minMonths: Number(fromMatch[1]) * 12,
+      maxMonths: null,
+    }
+  }
+
+  const exactMatch = normalizedValue.match(/(\d+)/)
+
+  if (exactMatch) {
+    const months = Number(exactMatch[1]) * 12
+
+    return {
+      minMonths: months,
+      maxMonths: months,
+    }
+  }
+
+  return null
+}
+
+function findCurrentNodeIndex(nodes, months) {
+  if (!Array.isArray(nodes) || !nodes.length || months == null) {
+    return 0
+  }
+
+  let bestIndex = 0
+  let bestMinMonths = -1
+
+  for (let index = 1; index < nodes.length; index += 1) {
+    const range = parseExperienceRequirement(nodes[index].experienceRequired)
+
+    if (!range) {
+      continue
+    }
+
+    const matchesMin = months >= range.minMonths
+    const matchesMax = range.maxMonths == null || months <= range.maxMonths
+
+    if (matchesMin && matchesMax && range.minMonths >= bestMinMonths) {
+      bestIndex = index
+      bestMinMonths = range.minMonths
+    }
+  }
+
+  return bestIndex
+}
+
+const selectedPathCoursesHeading = computed(() => selectedPathStep.value?.title ?? 'Подходящие курсы')
 
 function animateBackground() {
   currentOffsetX += (targetOffsetX - currentOffsetX) * 0.08
@@ -645,12 +1036,25 @@ function formatSalary(vacancy) {
   return parts.join(' ') || 'Зарплата не указана'
 }
 
+function formatCoursePrice(course) {
+  if (course.price == null) {
+    return 'Цена уточняется'
+  }
+
+  return course.currency ? `${course.price} ${course.currency}` : String(course.price)
+}
+
+watch(selectedPathStep, (step) => {
+  document.body.style.overflow = step ? 'hidden' : ''
+})
+
 onMounted(() => {
   mediaQueryList = window.matchMedia('(min-width: 768px) and (pointer: fine)')
   handleStorageChange()
   updateInteractivity()
   mediaQueryList.addEventListener('change', updateInteractivity)
   window.addEventListener('storage', handleStorageChange)
+  window.addEventListener('keydown', handleEscapeKey)
   animationFrameId = window.requestAnimationFrame(animateBackground)
 })
 
@@ -665,12 +1069,90 @@ onBeforeUnmount(() => {
 
   mediaQueryList?.removeEventListener('change', updateInteractivity)
   window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('keydown', handleEscapeKey)
+  document.body.style.overflow = ''
 })
 </script>
 
 <style scoped>
+.homepage-page {
+  background: linear-gradient(135deg, #161455 0%, #21176e 34%, #4a1d67 62%, #241782 100%);
+  color: #fff;
+}
+
 .homepage-hero {
   isolation: isolate;
+}
+
+.homepage-title {
+  color: #ffd7eb;
+}
+
+.homepage-subtitle {
+  color: #cac9ff;
+}
+
+.homepage-section-title {
+  color: #fff3fa;
+}
+
+.homepage-section-text {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.homepage-loading-panel,
+.homepage-error-panel {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(124, 120, 255, 0.12));
+  box-shadow: 0 24px 64px rgba(9, 5, 40, 0.22);
+  backdrop-filter: blur(18px);
+}
+
+.homepage-spinner {
+  border-color: rgba(111, 127, 255, 0.24);
+  border-top-color: #6f7fff;
+}
+
+.homepage-loading-kicker {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.homepage-loading-text {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.homepage-error-panel {
+  color: #ffe6ef;
+}
+
+.homepage-profession-chip {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  box-shadow: 0 18px 44px rgba(9, 5, 40, 0.16);
+}
+
+.homepage-cta {
+  background: linear-gradient(180deg, #587bff 0%, #5065ff 100%);
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(76, 91, 255, 0.35);
+}
+
+.homepage-cta:hover {
+  background: linear-gradient(180deg, #6988ff 0%, #5d72ff 100%);
+}
+
+.homepage-vacancies-link {
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.homepage-vacancies-link__anchor {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.16em;
 }
 
 .homepage-hero__background {
@@ -693,265 +1175,368 @@ onBeforeUnmount(() => {
   z-index: 0;
 }
 
-.homepage-hero__background--dark {
-  opacity: 0.88;
-}
-
-.career-path-card {
+.homepage-path {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.career-path-card::before {
-  content: '';
-  position: absolute;
-  inset: auto auto 12% -4%;
-  width: 16rem;
-  height: 16rem;
-  border-radius: 9999px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--button-secondary) 16%, transparent) 0%, transparent 72%);
-  pointer-events: none;
-  opacity: 0.85;
+.homepage-path__header {
+  max-width: 46rem;
 }
 
-.career-path-card::after {
-  content: '';
-  position: absolute;
-  inset: 6% -2% auto auto;
-  width: 14rem;
-  height: 14rem;
-  border-radius: 9999px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--button-primary) 10%, transparent) 0%, transparent 72%);
-  pointer-events: none;
-  opacity: 0.9;
+.homepage-path__title {
+  margin: 0;
 }
 
-.career-path-grid {
+.homepage-path__summary {
+  margin-top: 1rem;
+  max-width: 34rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+}
+
+.homepage-path__canvas {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 1.75rem;
-  max-width: 68rem;
-  margin: 0 auto;
-  padding: 3.6rem 0 5.75rem;
+  min-height: 52rem;
+  margin-top: 2.75rem;
 }
 
-.career-path-line {
+.homepage-path__diagram {
   position: absolute;
-  top: -1.2rem;
-  bottom: -1.5rem;
-  left: 50%;
-  width: 2px;
-  transform: translateX(-50%);
-  background: linear-gradient(180deg, var(--button-secondary) 0%, color-mix(in srgb, var(--button-secondary) 38%, transparent) 100%);
-  opacity: 0.7;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  pointer-events: none;
 }
 
-.career-path-side-note {
+.homepage-path__diagram-line {
+  stroke: rgba(255, 255, 255, 0.92);
+  stroke-linecap: round;
+  stroke-width: 2.1;
+}
+
+.homepage-path__diagram-accent {
+  stroke: #ff2c63;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+  marker-end: url(#homepage-path-arrowhead);
+}
+
+.homepage-path__label {
   position: absolute;
   z-index: 2;
-  pointer-events: none;
-}
-
-.career-path-side-note--current {
-  top: 0.15rem;
-  right: 1.25rem;
-  transform: rotate(-3deg);
-}
-
-.career-path-side-note--future {
-  bottom: 1.1rem;
-  left: 0.5rem;
-  transform: rotate(-7deg);
-}
-
-.career-path-side-note__label {
-  color: #ff6b57;
-  font-size: 0.88rem;
-  font-weight: 800;
-  letter-spacing: 0.38em;
+  color: #ff345f;
+  font-size: clamp(1rem, 1.35vw, 1.55rem);
+  font-weight: 900;
+  line-height: 1.02;
   text-transform: uppercase;
 }
 
-.career-path-arrow-overlay {
-  position: absolute;
-  z-index: 4;
-  fill: none;
-  stroke: #ff8b6e;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 3;
-  opacity: 0.95;
-  pointer-events: none;
+.homepage-path__label--current {
+  top: 2.8rem;
+  left: 2.2rem;
 }
 
-.career-path-arrow-overlay--current {
-  top: 0.9rem;
-  left: calc(50% - 0.1rem);
-  width: 18rem;
-  height: 6rem;
-}
-
-.career-path-arrow-overlay--future {
-  bottom: 0.95rem;
-  right: calc(50% - 0.1rem);
-  width: 18rem;
-  height: 6rem;
-}
-
-.career-path-node,
-.career-path-step {
-  position: relative;
-  z-index: 1;
-}
-
-.career-path-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.2rem;
+.homepage-path__label--future {
+  max-width: 15rem;
   text-align: center;
 }
 
-.career-path-node__marker {
-  width: 0.9rem;
-  height: 0.9rem;
-  border-radius: 9999px;
-  background: var(--button-secondary);
-  box-shadow: 0 0 0 8px color-mix(in srgb, var(--button-secondary) 14%, transparent);
+.homepage-path__mobile-label {
+  display: none;
 }
 
-.career-path-node--current .career-path-node__marker {
-  width: 1.15rem;
-  height: 1.15rem;
-}
-
-.career-path-node__body {
-  max-width: 18rem;
-  padding: 0.45rem 1.15rem;
-  border-radius: 1.5rem;
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 0 12px color-mix(in srgb, var(--surface) 58%, transparent);
-}
-
-.career-path-node__title {
-  color: var(--text-hero);
-  font-size: clamp(1.25rem, 1.75vw, 1.8rem);
-  font-weight: 800;
-  line-height: 1.05;
-}
-
-.career-path-node__caption {
-  margin-top: 0.45rem;
-  color: color-mix(in srgb, var(--text-main) 70%, transparent);
-  font-size: 0.95rem;
-  line-height: 1.4;
-}
-
-.career-path-step {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  gap: 1.15rem;
-  align-items: center;
-  min-height: 8.5rem;
-}
-
-.career-path-step__aside {
+.homepage-path__node {
+  position: absolute;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-}
-
-.career-path-step__aside--skills {
-  align-items: flex-end;
-  text-align: right;
-  padding-right: 1.1rem;
-}
-
-.career-path-step__aside--vacancies {
   align-items: flex-start;
-  text-align: left;
-  padding-left: 1.1rem;
+  gap: 0.85rem;
+  width: min(18rem, 32%);
 }
 
-.career-path-step__label {
-  color: color-mix(in srgb, var(--text-main) 68%, transparent);
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1.35;
+.homepage-path__node--interactive {
+  cursor: pointer;
 }
 
-.career-path-step__chips {
+.homepage-path__node--interactive::after {
+  content: '';
+  position: absolute;
+  inset: -0.75rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0);
+  background: rgba(255, 255, 255, 0);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  z-index: -1;
+}
+
+.homepage-path__node--interactive:hover::after,
+.homepage-path__node--interactive:focus-visible::after {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.homepage-path__node--interactive:hover .homepage-path__node-title,
+.homepage-path__node--interactive:focus-visible .homepage-path__node-title {
+  color: #ffd7eb;
+}
+
+.homepage-path__node--interactive:focus-visible {
+  outline: none;
+}
+
+.homepage-path__node--left {
+  left: 2.4rem;
+}
+
+.homepage-path__node--right {
+  right: 2.4rem;
+}
+
+.homepage-path__dot {
+  position: absolute;
+  top: 0;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: #ff9db8;
+  box-shadow: 0 0 0 7px rgba(255, 157, 184, 0.08);
+}
+
+.homepage-path__node--left .homepage-path__dot {
+  right: 0.8rem;
+}
+
+.homepage-path__node--right .homepage-path__dot {
+  left: 0.8rem;
+}
+
+.homepage-path__node-title {
+  margin: 2.15rem 0 0;
+  color: #fff;
+  font-size: clamp(1.6rem, 2vw, 2.05rem);
+  font-weight: 500;
+  line-height: 1.08;
+}
+
+.homepage-path__hint {
+  margin: 0.2rem 0 0;
+  color: rgba(255, 215, 235, 0.84);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.homepage-path__node--interactive:hover .homepage-path__hint,
+.homepage-path__node--interactive:focus-visible .homepage-path__hint {
+  color: #fff3fa;
+}
+
+.homepage-path__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
-  justify-content: flex-end;
+  gap: 0.65rem;
 }
 
-.career-path-chip {
-  border: 1px solid color-mix(in srgb, var(--border-soft) 76%, transparent);
+.homepage-path__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.05rem;
   border-radius: 9999px;
-  background: color-mix(in srgb, var(--surface-soft) 88%, transparent);
-  padding: 0.38rem 0.72rem;
-  color: var(--text-main);
+  background: #5d72ff;
+  padding: 0.42rem 0.95rem;
+  color: rgba(255, 255, 255, 0.95);
   font-size: 0.8rem;
   line-height: 1.2;
 }
 
-.career-path-step__meta,
-.career-path-step__query {
-  color: color-mix(in srgb, var(--text-main) 68%, transparent);
-  font-size: 0.9rem;
+.homepage-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 6, 37, 0.52);
+  padding: 1.25rem;
+  backdrop-filter: blur(10px);
+}
+
+.homepage-modal__panel {
+  position: relative;
+  width: min(100%, 68rem);
+  max-height: min(88vh, 42rem);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 2rem;
+  background: linear-gradient(180deg, rgba(237, 183, 255, 0.22), rgba(237, 183, 255, 0.12));
+  box-shadow: 0 28px 80px rgba(9, 5, 40, 0.35);
+  backdrop-filter: blur(28px);
+  padding: 1.6rem 1.2rem 1.4rem;
+}
+
+.homepage-modal__close {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 1.75rem;
+  line-height: 1;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.homepage-modal__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.homepage-modal__header {
+  padding: 0 2.5rem 0 0.4rem;
+}
+
+.homepage-modal__kicker {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.homepage-modal__title {
+  margin: 0.6rem 0 0;
+  color: #fff3fa;
+  font-size: clamp(1.7rem, 3vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1.02;
+}
+
+.homepage-modal__rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-top: 1.6rem;
+  padding: 0.3rem 0.35rem 0.6rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+  overscroll-behavior-x: contain;
+}
+
+.homepage-course-card {
+  flex: 0 0 min(20rem, calc(100vw - 4rem));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 33rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 44px rgba(9, 5, 40, 0.18);
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+
+.homepage-course-card__cover {
+  aspect-ratio: 16 / 8.5;
+  background: rgba(255, 255, 255, 0.08);
+  flex: 0 0 auto;
+}
+
+.homepage-course-card__cover-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.homepage-course-card__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1rem;
+  min-height: 0;
+}
+
+.homepage-course-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.homepage-course-card__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  border-radius: 9999px;
+  background: rgba(93, 114, 255, 0.92);
+  padding: 0.32rem 0.8rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.76rem;
+  line-height: 1.15;
+}
+
+.homepage-course-card__title {
+  margin: 0.95rem 0 0;
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+a.homepage-course-card__title:hover {
+  color: #ffd7eb;
+}
+
+.homepage-course-card__summary {
+  margin: 0.8rem 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.92rem;
   line-height: 1.45;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+}
+
+.homepage-course-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.8rem;
 }
 
 @media (max-width: 1023px) {
-  .career-path-grid {
-    padding-top: 5rem;
-    padding-bottom: 5.5rem;
+  .homepage-path__canvas {
+    min-height: 50rem;
   }
 
-  .career-path-side-note--current {
-    top: 0.4rem;
-    right: 50%;
-    transform: translateX(45%) rotate(-3deg);
+  .homepage-path__label--future {
+    max-width: 13rem;
   }
 
-  .career-path-side-note--future {
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-62%) rotate(-6deg);
+  .homepage-path__node {
+    width: min(19rem, 36%);
   }
 
-  .career-path-arrow-overlay--current {
-    top: 1rem;
-    left: calc(50% - 0.15rem);
-    transform: none;
-  }
-
-  .career-path-arrow-overlay--future {
-    right: calc(50% - 0.15rem);
-    bottom: 0.6rem;
-    transform: none;
-  }
-
-  .career-path-step {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-    justify-items: center;
-  }
-
-  .career-path-step__aside--skills,
-  .career-path-step__aside--vacancies {
-    align-items: center;
-    text-align: center;
-    padding-left: 0;
-    padding-right: 0;
-  }
-
-  .career-path-step__chips {
-    justify-content: center;
+  .homepage-modal__panel {
+    width: min(100%, 58rem);
   }
 }
 
@@ -962,72 +1547,145 @@ onBeforeUnmount(() => {
     transform: translate3d(-50%, -44%, 0);
   }
 
-  .career-path-card::before,
-  .career-path-card::after,
-  .career-path-line,
-  .career-path-arrow-overlay {
-    display: none;
+  .homepage-path__summary {
+    max-width: none;
   }
 
-  .career-path-grid {
-    gap: 1rem;
-    padding: 0.5rem 0 0;
-  }
-
-  .career-path-side-note {
-    position: static;
-    transform: none;
-    text-align: center;
-  }
-
-  .career-path-side-note--future {
-    order: 99;
-  }
-
-  .career-path-side-note__label {
-    font-size: 0.72rem;
-    letter-spacing: 0.18em;
-    text-align: center;
-  }
-
-  .career-path-node {
-    gap: 0.4rem;
-  }
-
-  .career-path-node__body {
-    max-width: 100%;
-    box-shadow: none;
-    padding: 0.2rem 0.65rem;
-  }
-
-  .career-path-node__title {
-    font-size: 1.15rem;
-  }
-
-  .career-path-step {
-    gap: 0.65rem;
-    padding: 0.8rem 0;
-    border-top: 1px solid color-mix(in srgb, var(--border-soft) 62%, transparent);
+  .homepage-path__canvas {
     min-height: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.8rem;
+    margin-top: 2rem;
+    padding-top: 0.2rem;
   }
 
-  .career-path-step__label,
-  .career-path-step__meta,
-  .career-path-step__query {
-    font-size: 0.84rem;
-  }
-
-  .career-path-step__chips {
-    flex-wrap: nowrap;
-    width: 100%;
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
-    scrollbar-width: none;
-  }
-
-  .career-path-step__chips::-webkit-scrollbar {
+  .homepage-path__diagram {
     display: none;
+  }
+
+  .homepage-path__label {
+    display: none;
+  }
+
+  .homepage-path__label,
+  .homepage-path__node {
+    position: static;
+  }
+
+  .homepage-path__mobile-label {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: #ff345f;
+    font-size: 0.9rem;
+    font-weight: 900;
+    line-height: 0.96;
+    text-transform: uppercase;
+  }
+
+  .homepage-path__node {
+    gap: 0.7rem;
+    max-width: none;
+    width: auto;
+    padding-left: 0;
+  }
+
+  .homepage-path__dot {
+    display: none;
+  }
+
+  .homepage-path__node-title {
+    margin-top: 0;
+    font-size: 1.35rem;
+  }
+
+  .homepage-path__chip {
+    font-size: 0.76rem;
+  }
+
+  .homepage-modal {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .homepage-modal__panel {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: 0.85rem 0.7rem 0.85rem;
+  }
+
+  .homepage-modal__header {
+    padding-right: 2.6rem;
+  }
+
+  .homepage-modal__kicker {
+    font-size: 0.68rem;
+  }
+
+  .homepage-modal__title {
+    font-size: 1.2rem;
+    line-height: 1.08;
+  }
+
+  .homepage-modal__rail {
+    margin-top: 1rem;
+    height: calc(100dvh - 6.2rem);
+    padding: 0.1rem 0.05rem 0.5rem;
+    align-items: stretch;
+  }
+
+  .homepage-course-card {
+    flex: 0 0 calc(100vw - 1.5rem);
+    width: calc(100vw - 1.5rem);
+    max-width: calc(100vw - 1.5rem);
+    height: 100%;
+    max-height: none;
+    border-radius: 1.2rem;
+  }
+
+  .homepage-course-card__cover {
+    aspect-ratio: 16 / 3.6;
+  }
+
+  .homepage-course-card__title {
+    margin-top: 0.75rem;
+    font-size: 0.92rem;
+  }
+
+  .homepage-course-card__summary {
+    margin-top: 0.55rem;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    -webkit-line-clamp: 5;
+    text-overflow: ellipsis;
+  }
+
+  .homepage-course-card__body {
+    padding: 0.75rem;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .homepage-course-card__chip {
+    min-height: 1.65rem;
+    padding: 0.28rem 0.68rem;
+    font-size: 0.68rem;
+  }
+
+  .homepage-course-card__meta {
+    gap: 0.55rem;
+    padding-top: 0.7rem;
+    font-size: 0.72rem;
+  }
+
+  .homepage-modal__close {
+    top: 0.65rem;
+    right: 0.7rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 1.55rem;
   }
 }
 </style>

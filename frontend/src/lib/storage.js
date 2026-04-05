@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   attemptToken: 'career-ai-attempt-token',
   authLoading: 'career-ai-auth-loading',
   authJob: 'career-ai-auth-job',
+  pendingRegistration: 'career-ai-pending-registration',
 }
 
 function isBrowser() {
@@ -68,6 +69,7 @@ export function clearAuthStorage() {
   removeStorageValue(STORAGE_KEYS.attemptToken)
   removeStorageValue(STORAGE_KEYS.authLoading)
   removeStorageValue(STORAGE_KEYS.authJob)
+  removeStorageValue(STORAGE_KEYS.pendingRegistration)
 }
 
 export function mapScoreArrayToApiScores(scoreArray) {
