@@ -328,10 +328,6 @@
                 {{ course.title }}
               </component>
 
-              <p class="homepage-course-card__summary">
-                {{ course.summary }}
-              </p>
-
               <div class="homepage-course-card__meta">
                 <span v-if="course.learnersCount != null">
                   {{ course.learnersCount }} учеников
@@ -1054,6 +1050,7 @@ onMounted(() => {
   updateInteractivity()
   mediaQueryList.addEventListener('change', updateInteractivity)
   window.addEventListener('storage', handleStorageChange)
+  window.addEventListener('career-ai:storage-reset', handleStorageChange)
   window.addEventListener('keydown', handleEscapeKey)
   animationFrameId = window.requestAnimationFrame(animateBackground)
 })
@@ -1069,6 +1066,7 @@ onBeforeUnmount(() => {
 
   mediaQueryList?.removeEventListener('change', updateInteractivity)
   window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('career-ai:storage-reset', handleStorageChange)
   window.removeEventListener('keydown', handleEscapeKey)
   document.body.style.overflow = ''
 })

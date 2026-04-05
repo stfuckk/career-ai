@@ -760,6 +760,7 @@ onMounted(() => {
 
   window.addEventListener('career-ai:test-preview-updated', handlePreviewUpdated)
   window.addEventListener('storage', handleStorageSync)
+  window.addEventListener('career-ai:storage-reset', handleStorageSync)
 })
 
 watch(
@@ -772,6 +773,7 @@ watch(
 onBeforeUnmount(() => {
   window.removeEventListener('career-ai:test-preview-updated', handlePreviewUpdated)
   window.removeEventListener('storage', handleStorageSync)
+  window.removeEventListener('career-ai:storage-reset', handleStorageSync)
 })
 </script>
 
@@ -787,7 +789,7 @@ onBeforeUnmount(() => {
   left: 50%;
   top: 21rem;
   width: 100vw;
-  height: 56rem;
+  height: 100vh;
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% auto;
