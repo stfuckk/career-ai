@@ -35,15 +35,10 @@
               v-if="isResultsLoading"
               class="homepage-loading-panel mt-14 flex min-h-64 items-center justify-center p-8 text-center"
             >
-              <div>
-                <div class="homepage-spinner mx-auto h-12 w-12 animate-spin rounded-full border-4" />
-                <p class="homepage-loading-kicker mt-5 text-xs font-semibold uppercase tracking-[0.24em]">
-                  Формируем персональный результат
-                </p>
-                <p class="homepage-loading-text mt-3 text-sm">
-                  {{ loadingMessage }}
-                </p>
-              </div>
+              <LoadingPong
+                title="Формируем персональный результат"
+                :subtitle="loadingMessage"
+              />
             </div>
 
             <div
@@ -328,10 +323,6 @@
                 {{ course.title }}
               </component>
 
-              <p class="homepage-course-card__summary">
-                {{ course.summary }}
-              </p>
-
               <div class="homepage-course-card__meta">
                 <span v-if="course.learnersCount != null">
                   {{ course.learnersCount }} учеников
@@ -352,6 +343,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 import backgroundObjectDark from '@/assets/background-object-dark.png'
+import LoadingPong from '@/components/LoadingPong.vue'
 import SiteFooter from '@/components/SiteFooter.vue'
 import SiteHeader from '@/components/ThemedSiteHeader.vue'
 import { readAiJobResult, readAiJobStatus, readLatestTestResult } from '@/lib/api'
@@ -1054,6 +1046,7 @@ onMounted(() => {
   updateInteractivity()
   mediaQueryList.addEventListener('change', updateInteractivity)
   window.addEventListener('storage', handleStorageChange)
+  window.addEventListener('career-ai:storage-reset', handleStorageChange)
   window.addEventListener('keydown', handleEscapeKey)
   animationFrameId = window.requestAnimationFrame(animateBackground)
 })
@@ -1069,6 +1062,7 @@ onBeforeUnmount(() => {
 
   mediaQueryList?.removeEventListener('change', updateInteractivity)
   window.removeEventListener('storage', handleStorageChange)
+  window.removeEventListener('career-ai:storage-reset', handleStorageChange)
   window.removeEventListener('keydown', handleEscapeKey)
   document.body.style.overflow = ''
 })

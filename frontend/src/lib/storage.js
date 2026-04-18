@@ -16,6 +16,14 @@ function isBrowser() {
   return typeof window !== 'undefined'
 }
 
+function dispatchStorageReset() {
+  if (!isBrowser()) {
+    return
+  }
+
+  window.dispatchEvent(new CustomEvent('career-ai:storage-reset'))
+}
+
 export function readStorageValue(key) {
   if (!isBrowser()) {
     return null
@@ -70,6 +78,7 @@ export function clearAuthStorage() {
   removeStorageValue(STORAGE_KEYS.authLoading)
   removeStorageValue(STORAGE_KEYS.authJob)
   removeStorageValue(STORAGE_KEYS.pendingRegistration)
+  dispatchStorageReset()
 }
 
 export function mapScoreArrayToApiScores(scoreArray) {

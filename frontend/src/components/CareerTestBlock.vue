@@ -87,10 +87,10 @@
       v-if="isLoadingResults"
       class="relative z-10 mx-auto mt-8 flex w-full max-w-3xl flex-col items-center justify-center px-4 text-center"
     >
-      <div class="mx-auto h-10 w-10 animate-spin rounded-full border-3 border-white/20 border-t-white" />
-      <p class="mt-4 text-xs font-semibold uppercase tracking-[0.22em] text-white/78">
-        Анализируем ответы
-      </p>
+      <LoadingPong
+        compact
+        title="Анализируем ответы"
+      />
     </div>
   </section>
 </template>
@@ -98,6 +98,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
+import LoadingPong from '@/components/LoadingPong.vue'
 import { CAREER_TEST_COLUMNS, CAREER_TEST_QUESTIONS } from '@/constants/careerTest'
 import { submitAnonymousTest } from '@/lib/api'
 import {
